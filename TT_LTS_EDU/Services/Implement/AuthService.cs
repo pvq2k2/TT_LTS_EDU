@@ -1,9 +1,16 @@
-﻿using MailKit.Net.Smtp;
+﻿using Azure;
+using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
+using Microsoft.IdentityModel.Tokens;
 using MimeKit;
 using MimeKit.Text;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using TT_LTS_EDU.Entities;
 using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
@@ -16,13 +23,15 @@ namespace TT_LTS_EDU.Services.Implement
     public class AuthService : BaseService, IAuthService
     {
         private readonly ResponseObject<AccountDTO> _responseAccount;
+        private readonly ResponseObject<TokenDTO> _responseAuth;
         private readonly IConfiguration _configuration;
-        public AuthService(ResponseObject<AccountDTO> responseAccount, IConfiguration configuration)
+        public AuthService(ResponseObject<AccountDTO> responseAccount, ResponseObject<TokenDTO> responseAuth, IConfiguration configuration)
         {
             _responseAccount = responseAccount;
+            _responseAuth = responseAuth;
             _configuration = configuration;
         }
-        private string CreateRandomToken()
+        private static string CreateRandomToken()
         {
             return Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
         }
@@ -48,12 +57,12 @@ namespace TT_LTS_EDU.Services.Implement
             var account = await _context.Account.FirstOrDefaultAsync(a => a.VerificationToken == token);
             if (account == null)
             {
-                return response.ResponseError(StatusCodes.Status400BadRequest, "Mã xác thực không hợp lệ !", null);
+                return response.ResponseError(StatusCodes.Status400BadRequest, "Mã xác thực không hợp lệ !", null!);
             }
             account.Status = 1;
             account.VerifiedAt = DateTime.Now;
             await _context.SaveChangesAsync();
-            return response.ResponseSuccess("Xác thực thành công !", null);
+            return response.ResponseSuccess("Xác thực thành công !", null!);
         }
 
         public async Task<ResponseObject<AccountDTO>> Register(RegisterRequest request)
@@ -65,43 +74,43 @@ namespace TT_LTS_EDU.Services.Implement
                || string.IsNullOrWhiteSpace(request.Phone)
                || string.IsNullOrWhiteSpace(request.Address))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status404NotFound, "Bạn cần truyền vào đầy đủ thông tin", null);
+                return _responseAccount.ResponseError(StatusCodes.Status404NotFound, "Bạn cần truyền vào đầy đủ thông tin", null!);
             }
             if (InputHelper.CheckLengthOfCharacters(request.FullName))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Họ và tên phải nhỏ hơn 20 ký tự !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Họ và tên phải nhỏ hơn 20 ký tự !", null!);
             }
             if (InputHelper.CheckWordCount(request.FullName))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Họ và tên phải có trên 2 từ !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Họ và tên phải có trên 2 từ !", null!);
             }
             if (!InputHelper.RegexUserName(request.UserName))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Tên tài khoản không được chứa dấu cách và ký tự đặc biệt !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Tên tài khoản không được chứa dấu cách và ký tự đặc biệt !", null!);
             }
             if (!InputHelper.RegexPassword(request.Password))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Mật khẩu phải có chữ hoa, chữ thường, chữ số và kí tự đặc biệt !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Mật khẩu phải có chữ hoa, chữ thường, chữ số và kí tự đặc biệt !", null!);
             }
             if (!InputHelper.RegexEmail(request.Email))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Không đúng định dạng email !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Không đúng định dạng email !", null!);
             }
             if (!InputHelper.RegexPhoneNumber(request.Phone))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Không đúng định dạng số điện thoại !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Không đúng định dạng số điện thoại !", null!);
             }
             if (await _context.Account.AnyAsync(x => x.UserName == request.UserName))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Tên tài khoản đã được sử dụng !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Tên tài khoản đã được sử dụng !", null!);
             }
             if (await _context.User.AnyAsync(x => x.Email == request.Email))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Email đã được sử dụng !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Email đã được sử dụng !", null!);
             }
             if (await _context.User.AnyAsync(x => x.Phone == request.Phone))
             {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null);
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null!);
             }
             var Account = new Account
             {
@@ -137,7 +146,130 @@ namespace TT_LTS_EDU.Services.Implement
                 .Include(x => x.User)
                 .Include(x => x.Decentralization)
                 .FirstOrDefaultAsync(x => x.ID == Account.ID);
-            return _responseAccount.ResponseSuccess("Tạo tài khoản thành công !", _authConverter.EntityAccountToDTO(currentAccount));
+            return _responseAccount.ResponseSuccess("Tạo tài khoản thành công !", _authConverter.EntityAccountToDTO(currentAccount!));
+        }
+
+        private string CreateAccessToken(Account account)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim("ID", account.ID.ToString()),
+                new Claim(ClaimTypes.Name, account.User!.FullName!),
+                new Claim(ClaimTypes.Email, account.User!.Email!),
+                new Claim("Avatar", account.User!.Avatar!),
+                new Claim("RoleID", account.DecentralizationID.ToString()),
+                new Claim(ClaimTypes.Role, account.Decentralization!.AuthorityName!),
+            };
+
+            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
+                _configuration.GetSection("AppSettings:AccessTokenSecret").Value!));
+            //Console.WriteLine(key);
+
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.Now.AddDays(1),
+                signingCredentials: creds);
+
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return jwt;
+        }
+
+        private static RefreshToken GenerateRefreshToken(int AccountID)
+        {
+            var refreshToken = new RefreshToken
+            {
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                AccountID = AccountID,
+                CreatedAt = DateTime.Now,
+                ExpiredTime = DateTime.Now.AddDays(7)
+            };
+
+            return refreshToken;
+        }
+
+        public ResponseObject<TokenDTO> ReNewToken(string refreshToken)
+        {
+            try
+            {
+                var existingRefreshToken = _context.RefreshToken.FirstOrDefault(x => x.Token == refreshToken);
+
+                if (existingRefreshToken == null)
+                {
+                    return _responseAuth.ResponseError(StatusCodes.Status404NotFound, "RefreshToken không tồn tại trong database", null!);
+                }
+
+                if (existingRefreshToken.ExpiredTime > DateTime.Now)
+                {
+                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "RefreshToken chưa hết hạn", null!);
+                }
+
+                var account = _context.Account
+                    .Include(x => x.User)
+                    .Include(x => x.Decentralization)
+                    .FirstOrDefault(x => x.ID == existingRefreshToken.AccountID);
+
+                if (account == null)
+                {
+                    return _responseAuth.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại", null!);
+                }
+
+                var newAccessToken = CreateAccessToken(account);
+                var newRefreshToken = GenerateRefreshToken(account.ID);
+                existingRefreshToken.Token = newRefreshToken.Token;
+                existingRefreshToken.CreatedAt = newRefreshToken.CreatedAt;
+                existingRefreshToken.ExpiredTime = newRefreshToken.ExpiredTime;
+
+                _context.RefreshToken.Update(existingRefreshToken);
+                _context.SaveChanges();
+
+                return _responseAuth.ResponseSuccess("Làm mới token thành công", new TokenDTO { AccessToken = newAccessToken, RefreshToken = newRefreshToken.Token });
+            }
+            catch (Exception ex)
+            {
+                return _responseAuth.ResponseError(StatusCodes.Status500InternalServerError, ex.Message, null!);
+            }
+        }
+
+
+        public async Task<ResponseObject<TokenDTO>> Login(LoginRequest request)
+        {
+            var account = await _context.Account.FirstOrDefaultAsync(x => x.UserName == request.UserName);
+            if (account == null || account.Password != request.Password)
+            {
+                return _responseAuth.ResponseError(StatusCodes.Status400BadRequest, "Tài khoản hoặc hoặc mật khẩu không chính xác !", null!);
+            }
+            if (account.VerifiedAt == null)
+            {
+                return _responseAuth.ResponseError(StatusCodes.Status400BadRequest, "Tài khoản chưa được xác thực !", null!);
+            }
+            var currentAccount = await _context.Account
+                .Include(x => x.User)
+                .Include(x => x.Decentralization)
+                .FirstOrDefaultAsync(x => x.ID == account.ID);
+
+            string accessToken = CreateAccessToken(currentAccount!);
+
+            var refreshToken = GenerateRefreshToken(currentAccount!.ID);
+
+            var myRefreshToken = await _context.RefreshToken.FirstOrDefaultAsync(x => x.AccountID == currentAccount.ID);
+
+            if (myRefreshToken == null)
+            {
+                _context.RefreshToken.Add(refreshToken);
+                await _context.SaveChangesAsync();
+            } else
+            {
+                myRefreshToken.Token = refreshToken.Token;
+                myRefreshToken.CreatedAt = refreshToken.CreatedAt;
+                myRefreshToken.ExpiredTime = refreshToken.ExpiredTime;
+
+                await _context.SaveChangesAsync();
+            }
+
+            return _responseAuth.ResponseSuccess("Đăng nhập thành công !", new TokenDTO { AccessToken = accessToken, RefreshToken = refreshToken.Token});
         }
     }
 }

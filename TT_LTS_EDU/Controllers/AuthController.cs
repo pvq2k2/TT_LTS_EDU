@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
+using TT_LTS_EDU.Handle.Response;
 using TT_LTS_EDU.Services.Interface;
 
 namespace TT_LTS_EDU.Controllers
@@ -23,6 +25,18 @@ namespace TT_LTS_EDU.Controllers
         public async Task<IActionResult> VerifyEmail(string token)
         {
             return Ok(await _iAuthService.VerifyEmail(token));
+        }
+
+        [HttpPost("Login")]
+        public async Task<IActionResult> Login(LoginRequest request)
+        {
+            return Ok(await _iAuthService.Login(request));
+        }
+
+        [HttpPost("ReNewToken")]
+        public IActionResult ReNewToken(string refreshToken)
+        {
+            return Ok(_iAuthService.ReNewToken(refreshToken));
         }
     }
 }

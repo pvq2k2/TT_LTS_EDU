@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Text.Json.Serialization;
 using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Response;
@@ -17,8 +20,22 @@ builder.Services.AddAutoMapper(typeof(Program).Assembly);
 //{
 //    options.UseSqlServer(builder.Configuration.GetSection("AppSettings:MyDB").Value);
 //});
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8
+                .GetBytes(builder.Configuration.GetSection("AppSettings:AccessTokenSecret").Value!)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+
 builder.Services.AddTransient<IAuthService, AuthService>();
 builder.Services.AddSingleton<ResponseObject<AccountDTO>>();
+builder.Services.AddSingleton<ResponseObject<TokenDTO>>();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
