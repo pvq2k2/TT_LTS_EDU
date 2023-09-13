@@ -1,11 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TT_LTS_EDU.Entities;
+using TT_LTS_EDU.Helpers.DataContext;
 
 namespace TT_LTS_EDU.Helpers.DBContext
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlServer(Settings.MyConnectString());
+        }
         public DbSet<Account> Account { get; set; }
         public DbSet<Cart> Cart { get; set; }
         public DbSet<CartItem> CartItem { get; set; }

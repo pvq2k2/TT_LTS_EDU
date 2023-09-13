@@ -1,19 +1,17 @@
-﻿using System;
-
-namespace TT_LTS_EDU.Entities
+﻿namespace TT_LTS_EDU.Entities
 {
     public class Product : BaseEntity
     {
         public int ProductTypeID { get; set; }
-        public string NameProduct { get; set; } = string.Empty;
+        public string? NameProduct { get; set; }
         public double Price { get; set; }
-        public string AvatarImageProduct { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public int Discount { get; set; }
+        public string? AvatarImageProduct { get; set; }
+        public string? Title { get; set; }
+        public int? Discount { get; set; }
         public int Status { get; set; }
-        public int NumberOfViews { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public int NumberOfViews { get; set; } = 0;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
 
         public ProductType? ProductType { get; set; }
         public List<ProductImage>? ListProductImage { get; set; }

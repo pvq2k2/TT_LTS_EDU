@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace TT_LTS_EDU.Entities
+﻿namespace TT_LTS_EDU.Entities
 {
     public class OrderDetail : BaseEntity
     {
@@ -8,8 +6,8 @@ namespace TT_LTS_EDU.Entities
         public int ProductID { get; set; }
         public double PriceTotal { get; set; }
         public int Quantity { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; }
 
         public Order? Order { get; set; }
         public Product? Product { get; set; }

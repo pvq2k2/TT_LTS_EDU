@@ -2,7 +2,7 @@
 {
     public class OrderStatus : BaseEntity
     {
-        public string StatusName { get; set; } = string.Empty;
+        public string? StatusName { get; set; }
 
         public List<Order>? ListOrder { get; set; }
     }
