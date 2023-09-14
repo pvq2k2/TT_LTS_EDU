@@ -10,5 +10,7 @@ namespace TT_LTS_EDU.Services.Interface
         public Task<ResponseObject<TokenDTO>> Login(LoginRequest request);
         public ResponseObject<TokenDTO> ReNewToken(string refreshToken);
         public Task<ResponseObject<string>> VerifyEmail(string token);
+        public Task<ResponseObject<string>> ForgotPassword(string email);
+        public Task<ResponseObject<string>> ResetPassword(ResetPasswordRequest request);
     }
 }

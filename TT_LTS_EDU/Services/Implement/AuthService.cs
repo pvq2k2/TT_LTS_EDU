@@ -1,16 +1,12 @@
-﻿using Azure;
-using MailKit.Net.Smtp;
+﻿using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Tokens;
 using MimeKit;
 using MimeKit.Text;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 using TT_LTS_EDU.Entities;
 using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
@@ -270,6 +266,50 @@ namespace TT_LTS_EDU.Services.Implement
             }
 
             return _responseAuth.ResponseSuccess("Đăng nhập thành công !", new TokenDTO { AccessToken = accessToken, RefreshToken = refreshToken.Token});
+        }
+
+        public async Task<ResponseObject<string>> ForgotPassword(string email)
+        {
+            var response = new ResponseObject<string>();
+            var user = await _context.User.FirstOrDefaultAsync(x => x.Email == email);
+            if (user == null)
+            {
+                return response.ResponseError(StatusCodes.Status400BadRequest, "Người dùng không tồn tại !", null!);
+            }
+            var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == user.AccountID);
+            account!.ResetPasswordToken = CreateRandomToken();
+            account.ResetPasswordTokenExpiry = DateTime.Now.AddHours(5);
+            await _context.SaveChangesAsync();
+            var EmailContent = new EmailFormat
+            {
+                To = email,
+                Subject = "Đặt lại mật khẩu",
+                Body = $"<p> Xin chào <b>{user.FullName}</b> vui lòng nhấp vào <a href=\"https://localhost:7299/api/Auth/change-password/{account.ResetPasswordToken}\"> Đổi mật khẩu </a> để đổi mật khẩu !<br>" +
+                $"Mã chỉ có hiệu lực trong vòng 5 giờ tính từ khi gửi yêu cầu ! </p>"
+            };
+            SendEmail(EmailContent);
+
+            return response.ResponseSuccess("Gửi yêu cầu thành công, vui lòng kiểm tra hộp thư của bạn !", null!);
+        }
+
+        public async Task<ResponseObject<string>> ResetPassword(ResetPasswordRequest request)
+        {
+            var response = new ResponseObject<string>();
+            var account = await _context.Account.FirstOrDefaultAsync(x => x.ResetPasswordToken == request.Token);
+            if (account == null)
+            {
+                return response.ResponseError(StatusCodes.Status400BadRequest, "Mã không hợp lệ !", null!);
+            }
+            if (account.ResetPasswordTokenExpiry < DateTime.Now)
+            {
+                return response.ResponseError(StatusCodes.Status400BadRequest, "Mã đã hết hạn !", null!);
+            }
+            account.Password = request.Password;
+            account.ResetPasswordToken = null;
+            account.ResetPasswordTokenExpiry = null;
+            await _context.SaveChangesAsync();
+
+            return response.ResponseSuccess("Đổi mật khẩu thành công !", null!);
         }
     }
 }

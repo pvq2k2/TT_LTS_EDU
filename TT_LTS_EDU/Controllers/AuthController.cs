@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
-using TT_LTS_EDU.Handle.Response;
 using TT_LTS_EDU.Services.Interface;
 
 namespace TT_LTS_EDU.Controllers
@@ -37,6 +35,18 @@ namespace TT_LTS_EDU.Controllers
         public IActionResult ReNewToken(string refreshToken)
         {
             return Ok(_iAuthService.ReNewToken(refreshToken));
+        }
+
+        [HttpPost("ForgotPassword")]
+        public async Task<IActionResult> ForgotPassword(string email)
+        {
+            return Ok(await _iAuthService.ForgotPassword(email));
+        }
+
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+        {
+            return Ok(await _iAuthService.ResetPassword(request));
         }
     }
 }
