@@ -7,12 +7,14 @@ using MimeKit.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using TT_LTS_EDU.Entities;
 using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
 using TT_LTS_EDU.Handle.Response;
 using TT_LTS_EDU.Helpers;
 using TT_LTS_EDU.Services.Interface;
+using TT_LTS_EDU.Enums;
 
 namespace TT_LTS_EDU.Services.Implement
 {
@@ -21,12 +23,18 @@ namespace TT_LTS_EDU.Services.Implement
         private readonly ResponseObject<AccountDTO> _responseAccount;
         private readonly ResponseObject<TokenDTO> _responseAuth;
         private readonly IConfiguration _configuration;
-        public AuthService(ResponseObject<AccountDTO> responseAccount, ResponseObject<TokenDTO> responseAuth, IConfiguration configuration)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly CloudinaryHelper _cloudinaryHelper;
+
+        public AuthService(ResponseObject<AccountDTO> responseAccount, ResponseObject<TokenDTO> responseAuth, IConfiguration configuration, IHttpContextAccessor httpContextAccessor, CloudinaryHelper cloudinaryHelper)
         {
             _responseAccount = responseAccount;
             _responseAuth = responseAuth;
             _configuration = configuration;
+            _httpContextAccessor = httpContextAccessor;
+            _cloudinaryHelper = cloudinaryHelper;
         }
+        #region Private Function
         private static string CreateRandomToken()
         {
             return Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
@@ -34,115 +42,24 @@ namespace TT_LTS_EDU.Services.Implement
 
         private void SendEmail(EmailFormat request)
         {
-            using var smtp = new SmtpClient();
-            smtp.Connect(_configuration.GetSection("AppSettings:EmailHost").Value, 587, SecureSocketOptions.StartTls);
-            smtp.Authenticate(_configuration.GetSection("AppSettings:EmailUserName").Value, _configuration.GetSection("AppSettings:EmailPassword").Value);
-            var email = new MimeMessage();
-            email.From.Add(MailboxAddress.Parse($"{_configuration.GetSection("AppSettings:ShopName").Value} <{_configuration.GetSection("AppSettings:EmailUserName").Value}>"));
-            email.To.Add(MailboxAddress.Parse(request.To));
-            email.Subject = request.Subject;
-            email.Body = new TextPart(TextFormat.Html) { Text = request.Body };
+            try
+            {
+                using var smtp = new SmtpClient();
+                smtp.Connect(_configuration.GetSection("AppSettings:EmailSettings:EmailHost").Value, 587, SecureSocketOptions.StartTls);
+                smtp.Authenticate(_configuration.GetSection("AppSettings:EmailSettings:EmailUserName").Value, _configuration.GetSection("AppSettings:EmailSettings:EmailPassword").Value);
+                var email = new MimeMessage();
+                email.From.Add(MailboxAddress.Parse($"{_configuration.GetSection("AppSettings:ShopName").Value} <{_configuration.GetSection("AppSettings:EmailSettings:EmailUserName").Value}>"));
+                email.To.Add(MailboxAddress.Parse(request.To));
+                email.Subject = request.Subject;
+                email.Body = new TextPart(TextFormat.Html) { Text = request.Body };
 
-            smtp.Send(email);
-            smtp.Disconnect(true);
-        }
-
-        public async Task<ResponseObject<string>> VerifyEmail(string token)
-        {
-            var response = new ResponseObject<string>();
-            var account = await _context.Account.FirstOrDefaultAsync(a => a.VerificationToken == token);
-            if (account == null)
-            {
-                return response.ResponseError(StatusCodes.Status400BadRequest, "Mã xác thực không hợp lệ !", null!);
+                smtp.Send(email);
+                smtp.Disconnect(true);
             }
-            account.Status = 1;
-            account.VerifiedAt = DateTime.Now;
-            await _context.SaveChangesAsync();
-            return response.ResponseSuccess("Xác thực thành công !", null!);
-        }
-
-        public async Task<ResponseObject<AccountDTO>> Register(RegisterRequest request)
-        {
-            if (string.IsNullOrWhiteSpace(request.UserName)
-               || string.IsNullOrWhiteSpace(request.Password)
-               || string.IsNullOrWhiteSpace(request.FullName)
-               || string.IsNullOrWhiteSpace(request.Email)
-               || string.IsNullOrWhiteSpace(request.Phone)
-               || string.IsNullOrWhiteSpace(request.Address))
+            catch (Exception ex)
             {
-                return _responseAccount.ResponseError(StatusCodes.Status404NotFound, "Bạn cần truyền vào đầy đủ thông tin", null!);
+                throw new ArgumentException($"Lỗi khi gửi mail {ex.Message}");
             }
-            if (InputHelper.CheckLengthOfCharacters(request.FullName))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Họ và tên phải nhỏ hơn 20 ký tự !", null!);
-            }
-            if (InputHelper.CheckWordCount(request.FullName))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Họ và tên phải có trên 2 từ !", null!);
-            }
-            if (!InputHelper.RegexUserName(request.UserName))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Tên tài khoản không được chứa dấu cách và ký tự đặc biệt !", null!);
-            }
-            if (!InputHelper.RegexPassword(request.Password))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Mật khẩu phải có chữ hoa, chữ thường, chữ số và kí tự đặc biệt !", null!);
-            }
-            if (!InputHelper.RegexEmail(request.Email))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Không đúng định dạng email !", null!);
-            }
-            if (!InputHelper.RegexPhoneNumber(request.Phone))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Không đúng định dạng số điện thoại !", null!);
-            }
-            if (await _context.Account.AnyAsync(x => x.UserName == request.UserName))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Tên tài khoản đã được sử dụng !", null!);
-            }
-            if (await _context.User.AnyAsync(x => x.Email == request.Email))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Email đã được sử dụng !", null!);
-            }
-            if (await _context.User.AnyAsync(x => x.Phone == request.Phone))
-            {
-                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null!);
-            }
-            var Account = new Account
-            {
-                UserName = request.UserName,
-                Password = request.Password,
-                Status = 0,
-                DecentralizationID = 3,
-                VerificationToken = CreateRandomToken()
-            };
-
-            await _context.Account.AddAsync(Account);
-            await _context.SaveChangesAsync();
-
-            var User = new User
-            {
-                FullName = InputHelper.NormalizeName(request.FullName),
-                Phone = request.Phone,
-                Email = request.Email,
-                Address = request.Address,
-                AccountID = Account.ID
-            };
-            await _context.User.AddAsync(User);
-            await _context.SaveChangesAsync();
-
-            var EmailContent = new EmailFormat
-            {
-                To = request.Email,
-                Subject = "Xác thực tài khoản",
-                Body = $"<p> Xin chào <b>{User.FullName}</b> vui lòng nhấp vào <a href=\"https://localhost:7299/api/Auth/Verify/{Account.VerificationToken}\"> Xác thực </a> để kích hoạt tài khoản ! </p>"
-            };
-            SendEmail(EmailContent);
-            var currentAccount = await _context.Account
-                .Include(x => x.User)
-                .Include(x => x.Decentralization)
-                .FirstOrDefaultAsync(x => x.ID == Account.ID);
-            return _responseAccount.ResponseSuccess("Tạo tài khoản thành công !", _authConverter.EntityAccountToDTO(currentAccount!));
         }
 
         private string CreateAccessToken(Account account)
@@ -159,13 +76,12 @@ namespace TT_LTS_EDU.Services.Implement
 
             var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
                 _configuration.GetSection("AppSettings:AccessTokenSecret").Value!));
-            //Console.WriteLine(key);
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddDays(1),
+                expires: DateTime.Now.AddHours(4),
                 signingCredentials: creds);
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
@@ -180,16 +96,159 @@ namespace TT_LTS_EDU.Services.Implement
                 Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
                 AccountID = AccountID,
                 CreatedAt = DateTime.Now,
-                ExpiredTime = DateTime.Now.AddDays(7)
+                ExpiredTime = DateTime.Now.AddHours(4)
             };
 
             return refreshToken;
+        }
+
+        private bool ValidateToken(string jwtToken)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:AccessTokenSecret").Value!);
+
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            try
+            {
+                var principal = tokenHandler.ValidateToken(jwtToken, tokenValidationParameters, out SecurityToken validatedToken);
+                return true;
+            }
+            catch (SecurityTokenException)
+            {
+                return false;
+            }
+        }
+        #endregion
+
+
+        public async Task<ResponseObject<string>> VerifyEmail(string token)
+        {
+            var response = new ResponseObject<string>();
+            var account = await _context.Account.FirstOrDefaultAsync(a => a.VerificationToken == token);
+            if (account == null)
+            {
+                return response.ResponseError(StatusCodes.Status400BadRequest, "Mã xác thực không hợp lệ !", null!);
+            }
+            account.Status = 1;
+            account.VerifiedAt = DateTime.Now;
+
+            _context.Account.Update(account);
+            await _context.SaveChangesAsync();
+            return response.ResponseSuccess("Xác thực thành công !", null!);
+        }
+
+        public async Task<ResponseObject<AccountDTO>> Register(RegisterRequest request)
+        {
+            try
+            {
+                InputHelper.RegisterValidate(request);
+                InputHelper.IsImage(request.Avatar!);
+                if (await _context.Account.AnyAsync(x => x.UserName == request.UserName))
+                {
+                    return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Tên tài khoản đã được sử dụng !", null!);
+                }
+                if (await _context.User.AnyAsync(x => x.Email == request.Email))
+                {
+                    return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Email đã được sử dụng !", null!);
+                }
+                if (await _context.User.AnyAsync(x => x.Phone == request.Phone))
+                {
+                    return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null!);
+                }
+                string avtar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
+                
+                using (var Tran = _context.Database.BeginTransaction())
+                {
+                    try
+                    {
+                        var Account = new Account
+                        {
+                            UserName = request.UserName,
+                            Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                            Status = (int)Status.InActive,
+                            DecentralizationID = (int)Enums.Decentralization.User,
+                            VerificationToken = CreateRandomToken()
+                        };
+                        await _context.Account.AddAsync(Account);
+                        await _context.SaveChangesAsync();
+
+                        var User = new User
+                        {
+                            FullName = InputHelper.NormalizeName(request.FullName),
+                            Phone = request.Phone,
+                            Email = request.Email,
+                            Avatar = avtar,
+                            Address = request.Address,
+                            AccountID = Account.ID
+                        };
+
+                        await _context.User.AddAsync(User);
+                        await _context.SaveChangesAsync();
+
+                        var EmailContent = new EmailFormat
+                        {
+                            To = request.Email,
+                            Subject = "Xác thực tài khoản",
+                            Body = EmailTemplate.MailTemplateString(User.FullName!, User.Email!,
+                            "Vui lòng nhấp vào nút kích hoạt tài khoản để kích hoạt tài khoản !",
+                            $"https://localhost:7299/api/Auth/Verify/{Account.VerificationToken}",
+                            "Kích hoạt tài khoản")
+                        };
+                        SendEmail(EmailContent);
+
+
+                        var currentAccount = await _context.Account
+                            .Include(x => x.User)
+                            .Include(x => x.Decentralization)
+                            .FirstOrDefaultAsync(x => x.ID == Account.ID);
+                        await Tran.CommitAsync();
+                        return _responseAccount.ResponseSuccess("Tạo tài khoản thành công !", _authConverter.EntityAccountToDTO(currentAccount!));
+                    }
+                    catch (Exception ex)
+                    {
+                        await Tran.RollbackAsync();
+                        throw new Exception(ex.Message);
+                    }
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, ex.Message, null!);
+            }
         }
 
         public ResponseObject<TokenDTO> ReNewToken(string refreshToken)
         {
             try
             {
+                var authorizationHeader = _httpContextAccessor?.HttpContext?.Request.Headers["Authorization"].FirstOrDefault();
+                if (string.IsNullOrEmpty(authorizationHeader))
+                {
+                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
+                }
+
+
+                if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
+                }
+
+
+                var jwtToken = authorizationHeader["Bearer ".Length..].Trim();
+
+                if (!ValidateToken(jwtToken))
+                {
+                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ !", null!);
+                }
                 var existingRefreshToken = _context.RefreshToken.FirstOrDefault(x => x.Token == refreshToken);
 
                 if (existingRefreshToken == null)
@@ -229,13 +288,16 @@ namespace TT_LTS_EDU.Services.Implement
             }
         }
 
-
         public async Task<ResponseObject<TokenDTO>> Login(LoginRequest request)
         {
             var account = await _context.Account.FirstOrDefaultAsync(x => x.UserName == request.UserName);
-            if (account == null || account.Password != request.Password)
+            if (account == null)
             {
                 return _responseAuth.ResponseError(StatusCodes.Status400BadRequest, "Tài khoản hoặc hoặc mật khẩu không chính xác !", null!);
+            }
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, account.Password))
+            {
+                return _responseAuth.ResponseError(StatusCodes.Status400BadRequest, "Mật khẩu không chính xác !", null!);
             }
             if (account.VerifiedAt == null)
             {
@@ -254,7 +316,7 @@ namespace TT_LTS_EDU.Services.Implement
 
             if (myRefreshToken == null)
             {
-                _context.RefreshToken.Add(refreshToken);
+                await _context.RefreshToken.AddAsync(refreshToken);
                 await _context.SaveChangesAsync();
             } else
             {
@@ -262,6 +324,7 @@ namespace TT_LTS_EDU.Services.Implement
                 myRefreshToken.CreatedAt = refreshToken.CreatedAt;
                 myRefreshToken.ExpiredTime = refreshToken.ExpiredTime;
 
+                _context.RefreshToken.Update(myRefreshToken);
                 await _context.SaveChangesAsync();
             }
 
@@ -279,13 +342,17 @@ namespace TT_LTS_EDU.Services.Implement
             var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == user.AccountID);
             account!.ResetPasswordToken = CreateRandomToken();
             account.ResetPasswordTokenExpiry = DateTime.Now.AddHours(5);
+
+            _context.Account.Update(account);
             await _context.SaveChangesAsync();
             var EmailContent = new EmailFormat
             {
                 To = email,
                 Subject = "Đặt lại mật khẩu",
-                Body = $"<p> Xin chào <b>{user.FullName}</b> vui lòng nhấp vào <a href=\"https://localhost:7299/api/Auth/change-password/{account.ResetPasswordToken}\"> Đổi mật khẩu </a> để đổi mật khẩu !<br>" +
-                $"Mã chỉ có hiệu lực trong vòng 5 giờ tính từ khi gửi yêu cầu ! </p>"
+                Body = EmailTemplate.MailTemplateString(user.FullName!, user.Email!, 
+                "Vui lòng nhấp vào nút đổi mật khẩu để đổi mật khẩu !. \nMã chỉ có hiệu lực trong vòng 5 giờ tính từ khi gửi yêu cầu !",
+                $"https://localhost:7299/api/Auth/change-password/{account.ResetPasswordToken}",
+                "Đổi mật khẩu")
             };
             SendEmail(EmailContent);
 
@@ -304,12 +371,64 @@ namespace TT_LTS_EDU.Services.Implement
             {
                 return response.ResponseError(StatusCodes.Status400BadRequest, "Mã đã hết hạn !", null!);
             }
-            account.Password = request.Password;
+            account.Password = BCrypt.Net.BCrypt.HashPassword(request.Password);
             account.ResetPasswordToken = null;
             account.ResetPasswordTokenExpiry = null;
+
+            _context.Account.Update(account);
             await _context.SaveChangesAsync();
 
             return response.ResponseSuccess("Đổi mật khẩu thành công !", null!);
+        }
+
+        public async Task<ResponseObject<string>> ChangePassword(ChangePasswordRequest request)
+        {
+            var response = new ResponseObject<string>();
+
+            var authorizationHeader = _httpContextAccessor?.HttpContext?.Request.Headers["Authorization"].FirstOrDefault();
+            if (string.IsNullOrEmpty(authorizationHeader))
+            {
+                return response.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
+            }
+
+
+            if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                return response.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
+            }
+
+
+            var jwtToken = authorizationHeader["Bearer ".Length..].Trim();
+
+            if (!ValidateToken(jwtToken))
+            {
+                return response.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ !", null!);
+            }
+
+            var accountIDClaim = _httpContextAccessor?.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == "ID");
+            if (accountIDClaim != null && int.TryParse(accountIDClaim.Value, out int accountId))
+            {
+                var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == accountId);
+                if (account == null)
+                {
+                    return response.ResponseError(StatusCodes.Status404NotFound, "Không tìm thấy tài khoản !", null!);
+                }
+
+                if (!BCrypt.Net.BCrypt.Verify(request.OddPassword, account.Password))
+                {
+                    return response.ResponseError(StatusCodes.Status400BadRequest, "Mật khẩu cũ không đúng !", null!);
+                }
+
+                account.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                _context.Account.Update(account);
+                await _context.SaveChangesAsync();
+
+                return response.ResponseSuccess("Thay đổi mật khẩu thành công !", null!);
+            }
+            else
+            {
+                return response.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại !", null!);
+            }
         }
     }
 }

@@ -12,5 +12,6 @@ namespace TT_LTS_EDU.Services.Interface
         public Task<ResponseObject<string>> VerifyEmail(string token);
         public Task<ResponseObject<string>> ForgotPassword(string email);
         public Task<ResponseObject<string>> ResetPassword(ResetPasswordRequest request);
+        public Task<ResponseObject<string>> ChangePassword(ChangePasswordRequest request);
     }
 }

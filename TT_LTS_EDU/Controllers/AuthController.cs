@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
 using TT_LTS_EDU.Services.Interface;
 
@@ -9,12 +10,13 @@ namespace TT_LTS_EDU.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _iAuthService;
+
         public AuthController(IAuthService iAuthService) {
             _iAuthService = iAuthService;
         }
 
         [HttpPost("Register")]
-        public async Task<IActionResult> Register(RegisterRequest request)
+        public async Task<IActionResult> Register([FromForm] RegisterRequest request)
         {
             return Ok(await _iAuthService.Register(request));
         }
@@ -32,6 +34,7 @@ namespace TT_LTS_EDU.Controllers
         }
 
         [HttpPost("ReNewToken")]
+        [Authorize]
         public IActionResult ReNewToken(string refreshToken)
         {
             return Ok(_iAuthService.ReNewToken(refreshToken));
@@ -47,6 +50,13 @@ namespace TT_LTS_EDU.Controllers
         public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
         {
             return Ok(await _iAuthService.ResetPassword(request));
+        }
+
+        [HttpPut("ChangePassword")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+        {
+            return Ok(await _iAuthService.ChangePassword(request));
         }
     }
 }

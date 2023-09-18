@@ -12,8 +12,8 @@ using TT_LTS_EDU.Helpers.DBContext;
 namespace TT_LTS_EDU.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230913062013_V2")]
-    partial class V2
+    [Migration("20230918024424_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -463,6 +463,7 @@ namespace TT_LTS_EDU.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Avatar")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")

@@ -1,10 +1,76 @@
 ﻿using System.Globalization;
 using System.Text.RegularExpressions;
+using TT_LTS_EDU.Handle.Request.AuthRequest;
 
 namespace TT_LTS_EDU.Helpers
 {
     public class InputHelper
     {
+        public static bool IsImage(IFormFile imageFile, int maxSizeInBytes = (2 * 1024 * 768))
+        {
+            if (imageFile == null || imageFile.Length == 0)
+            {
+                throw new Exception("Kích thước file quá lớn");
+            }
+
+            string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".bmp" };
+            var fileExtension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(fileExtension))
+            {
+                throw new Exception("File này không phải file có định dạng ảnh");
+            }
+
+            if (imageFile.Length > maxSizeInBytes)
+            {
+                throw new Exception("Kích thước file quá lớn");
+            }
+
+            var image = Image.Load<Rgba32>(imageFile.OpenReadStream());
+            if (image.Width < 0 || image.Height < 0)
+            {
+                throw new Exception("Ảnh không phù hợp !");
+            }
+
+            return true;
+        }
+
+        public static bool RegisterValidate(RegisterRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.UserName)
+               || string.IsNullOrWhiteSpace(request.Password)
+               || string.IsNullOrWhiteSpace(request.FullName)
+               || string.IsNullOrWhiteSpace(request.Email)
+               || string.IsNullOrWhiteSpace(request.Phone)
+               || string.IsNullOrWhiteSpace(request.Address))
+            {
+                throw new Exception("Bạn cần truyền vào đầy đủ thông tin !");
+            }
+            if (CheckLengthOfCharacters(request.FullName))
+            {
+                throw new Exception("Họ và tên phải nhỏ hơn 20 ký tự !");
+            }
+            if (CheckWordCount(request.FullName))
+            {
+                throw new Exception("Họ và tên phải có trên 2 từ !");
+            }
+            if (!RegexUserName(request.UserName))
+            {
+                throw new Exception("Tên tài khoản không được chứa dấu cách và ký tự đặc biệt !");
+            }
+            if (!RegexPassword(request.Password))
+            {
+                throw new Exception("Mật khẩu phải có chữ hoa, chữ thường, chữ số và kí tự đặc biệt !");
+            }
+            if (!RegexEmail(request.Email))
+            {
+                throw new Exception("Không đúng định dạng email !");
+            }
+            if (!RegexPhoneNumber(request.Phone))
+            {
+                throw new Exception("Không đúng định dạng số điện thoại !");
+            }
+            return true;
+        }
         public static bool CheckLengthOfCharacters(string fullName)
         {
             return fullName.Length > 20;
