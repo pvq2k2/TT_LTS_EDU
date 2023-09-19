@@ -15,6 +15,8 @@ using TT_LTS_EDU.Handle.Response;
 using TT_LTS_EDU.Helpers;
 using TT_LTS_EDU.Services.Interface;
 using TT_LTS_EDU.Enums;
+using QuanLyTrungTam_API.Helper;
+using Azure;
 
 namespace TT_LTS_EDU.Services.Implement
 {
@@ -163,8 +165,8 @@ namespace TT_LTS_EDU.Services.Implement
                 {
                     return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null!);
                 }
-                string avtar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
-                
+                string avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
+
                 using (var Tran = _context.Database.BeginTransaction())
                 {
                     try
@@ -185,7 +187,7 @@ namespace TT_LTS_EDU.Services.Implement
                             FullName = InputHelper.NormalizeName(request.FullName),
                             Phone = request.Phone,
                             Email = request.Email,
-                            Avatar = avtar,
+                            Avatar = avatar,
                             Address = request.Address,
                             AccountID = Account.ID
                         };
@@ -217,7 +219,7 @@ namespace TT_LTS_EDU.Services.Implement
                         await Tran.RollbackAsync();
                         throw new Exception(ex.Message);
                     }
-                    
+
                 }
             }
             catch (Exception ex)
@@ -291,13 +293,13 @@ namespace TT_LTS_EDU.Services.Implement
         public async Task<ResponseObject<TokenDTO>> Login(LoginRequest request)
         {
             var account = await _context.Account.FirstOrDefaultAsync(x => x.UserName == request.UserName);
-            if (account == null)
+            if (account == null || account.Status == (int)Status.InActive)
             {
-                return _responseAuth.ResponseError(StatusCodes.Status400BadRequest, "Tài khoản hoặc hoặc mật khẩu không chính xác !", null!);
+                return _responseAuth.ResponseError(StatusCodes.Status400BadRequest, "Tài khoản không tồn tại !", null!);
             }
             if (!BCrypt.Net.BCrypt.Verify(request.Password, account.Password))
             {
-                return _responseAuth.ResponseError(StatusCodes.Status400BadRequest, "Mật khẩu không chính xác !", null!);
+                return _responseAuth.ResponseError(StatusCodes.Status400BadRequest, "Tài khoản hoặc mật khẩu không chính xác !", null!);
             }
             if (account.VerifiedAt == null)
             {
@@ -318,7 +320,8 @@ namespace TT_LTS_EDU.Services.Implement
             {
                 await _context.RefreshToken.AddAsync(refreshToken);
                 await _context.SaveChangesAsync();
-            } else
+            }
+            else
             {
                 myRefreshToken.Token = refreshToken.Token;
                 myRefreshToken.CreatedAt = refreshToken.CreatedAt;
@@ -328,7 +331,7 @@ namespace TT_LTS_EDU.Services.Implement
                 await _context.SaveChangesAsync();
             }
 
-            return _responseAuth.ResponseSuccess("Đăng nhập thành công !", new TokenDTO { AccessToken = accessToken, RefreshToken = refreshToken.Token});
+            return _responseAuth.ResponseSuccess("Đăng nhập thành công !", new TokenDTO { AccessToken = accessToken, RefreshToken = refreshToken.Token });
         }
 
         public async Task<ResponseObject<string>> ForgotPassword(string email)
@@ -349,7 +352,7 @@ namespace TT_LTS_EDU.Services.Implement
             {
                 To = email,
                 Subject = "Đặt lại mật khẩu",
-                Body = EmailTemplate.MailTemplateString(user.FullName!, user.Email!, 
+                Body = EmailTemplate.MailTemplateString(user.FullName!, user.Email!,
                 "Vui lòng nhấp vào nút đổi mật khẩu để đổi mật khẩu !. \nMã chỉ có hiệu lực trong vòng 5 giờ tính từ khi gửi yêu cầu !",
                 $"https://localhost:7299/api/Auth/change-password/{account.ResetPasswordToken}",
                 "Đổi mật khẩu")
@@ -429,6 +432,132 @@ namespace TT_LTS_EDU.Services.Implement
             {
                 return response.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại !", null!);
             }
+        }
+
+        public async Task<PageResult<AccountDTO>> GetAllAccount(Pagination pagination)
+        {
+            var query = _context.Account.Include(x => x.User).Include(x => x.Decentralization).OrderByDescending(x => x.ID).AsQueryable();
+
+            var result = PageResult<Account>.ToPageResult(pagination, query);
+            pagination.TotalCount = await query.CountAsync();
+
+            var list = result.ToList();
+
+            return new PageResult<AccountDTO>(pagination, _authConverter.ListEntityAccountToDTO(result.ToList()));
+        }
+
+        public async Task<ResponseObject<AccountDTO>> GetAccountByID(int accountID)
+        {
+            var account = await _context.Account.Include(x => x.User).Include(x => x.Decentralization).FirstOrDefaultAsync(x => x.ID == accountID);
+            if (account == null)
+            {
+                return _responseAccount.ResponseError(StatusCodes.Status404NotFound, $"Tài khoản có ID {accountID} không tồn tại !", null!);
+            }
+            return _responseAccount.ResponseSuccess("Thành Công !", _authConverter.EntityAccountToDTO(account));
+        }
+
+        public async Task<ResponseObject<AccountDTO>> ChangeInformation(ChangeInformationRequest request)
+        {
+            try
+            {
+                InputHelper.ChangeInformationValidate(request);
+
+                var authorizationHeader = _httpContextAccessor?.HttpContext?.Request.Headers["Authorization"].FirstOrDefault();
+                if (string.IsNullOrEmpty(authorizationHeader))
+                {
+                    return _responseAccount.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
+                }
+
+
+                if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    return _responseAccount.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
+                }
+
+                var jwtToken = authorizationHeader["Bearer ".Length..].Trim();
+
+                if (!ValidateToken(jwtToken))
+                {
+                    return _responseAccount.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ !", null!);
+                }
+
+                var accountIDClaim = _httpContextAccessor?.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == "ID");
+
+                if (accountIDClaim != null && int.TryParse(accountIDClaim.Value, out int accountId))
+                {
+                    var account = await _context.Account.Include(x => x.User).Include(x => x.Decentralization).FirstOrDefaultAsync(x => x.ID == accountId);
+                    if (account != null)
+                    {
+                        if (await _context.User.AnyAsync(x => x.Email == request.Email) && request.Email != account.User!.Email)
+                        {
+                            return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Email đã được sử dụng !", null!);
+                        }
+                        if (await _context.User.AnyAsync(x => x.Phone == request.Phone) && request.Phone != account.User!.Phone)
+                        {
+                            return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null!);
+                        }
+                        string avatar;
+                        if (request.Avatar != null)
+                        {
+                            InputHelper.IsImage(request.Avatar!);
+                            avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
+                            await _cloudinaryHelper.DeleteImageByUrl(account.User!.Avatar);
+                        } else
+                        {
+                            avatar = account.User!.Avatar;
+                        }
+                        account.User!.FullName = request.FullName;
+                        account.User.Phone = request.Phone;
+                        account.User.Email = request.Email;
+                        account.User.Avatar = avatar;
+                        account.User.Address = request.Address;
+
+                        _context.Account.Update(account);
+                        await _context.SaveChangesAsync();
+
+                        return _responseAccount.ResponseSuccess("Cập nhật thông tin thành công !", _authConverter.EntityAccountToDTO(account));
+                    }
+                }
+                return _responseAccount.ResponseError(StatusCodes.Status404NotFound, "Không tìm thấy tài khoản !", null!);
+            }
+            catch (Exception ex)
+            {
+                return _responseAccount.ResponseError(StatusCodes.Status500InternalServerError, ex.Message, null!);
+            }
+        }
+
+        public async Task<ResponseObject<string>> RemoveAccount(int accountID)
+        {
+            var response = new ResponseObject<string>();
+            var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == accountID);
+
+            if (account == null)
+            {
+                return response.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại !", null!);
+            }
+
+            account.Status = (int)Status.InActive;
+            _context.Account.Update(account);
+            await _context.SaveChangesAsync();
+
+            return response.ResponseSuccess("Xóa tài khoản thành công !", null!);
+        }
+
+        public async Task<ResponseObject<string>> RecoverAccount(int accountID)
+        {
+            var response = new ResponseObject<string>();
+            var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == accountID);
+
+            if (account == null)
+            {
+                return response.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại !", null!);
+            }
+
+            account.Status = (int)Status.Active;
+            _context.Account.Update(account);
+            await _context.SaveChangesAsync();
+
+            return response.ResponseSuccess("Khôi phục tài khoản thành công !", null!);
         }
     }
 }

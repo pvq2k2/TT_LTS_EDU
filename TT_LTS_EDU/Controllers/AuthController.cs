@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuanLyTrungTam_API.Helper;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
 using TT_LTS_EDU.Services.Interface;
 
@@ -57,6 +58,40 @@ namespace TT_LTS_EDU.Controllers
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
         {
             return Ok(await _iAuthService.ChangePassword(request));
+        }
+
+        [HttpPost("GetAllAccount")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllAccount(Pagination pagination)
+        {
+            return Ok(await _iAuthService.GetAllAccount(pagination));
+        }
+
+        [HttpGet("GetAccountByID")]
+        public async Task<IActionResult> GetAccountByID(int accountID)
+        {
+            return Ok(await _iAuthService.GetAccountByID(accountID));
+        }
+
+        [HttpPost("ChangeInformation")]
+        [Authorize]
+        public async Task<IActionResult> ChangeInformation([FromForm] ChangeInformationRequest request)
+        {
+            return Ok(await _iAuthService.ChangeInformation(request));
+        }
+
+        [HttpDelete("RemoveAccount")]
+        [Authorize]
+        public async Task<IActionResult> RemoveAccount(int accountID)
+        {
+            return Ok(await _iAuthService.RemoveAccount(accountID));
+        }
+
+        [HttpDelete("RecoverAccount")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RecoverAccount(int accountID)
+        {
+            return Ok(await _iAuthService.RecoverAccount(accountID));
         }
     }
 }

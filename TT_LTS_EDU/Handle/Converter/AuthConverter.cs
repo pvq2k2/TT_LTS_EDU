@@ -19,5 +19,16 @@ namespace TT_LTS_EDU.Handle.Converter
                 DecentralizationDTO = _decentralizationConverter.EntityDecentralizationToDTO(account.Decentralization!)
             };
         }
+
+        public List<AccountDTO> ListEntityAccountToDTO(List<Account> listAccount)
+        {
+            var listAccountDTO = new List<AccountDTO>();
+            foreach (var account in listAccount)
+            {
+                listAccountDTO.Add(EntityAccountToDTO(account));
+            }
+
+            return listAccountDTO;
+        }
     }
 }

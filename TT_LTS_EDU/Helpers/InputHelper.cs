@@ -10,7 +10,7 @@ namespace TT_LTS_EDU.Helpers
         {
             if (imageFile == null || imageFile.Length == 0)
             {
-                throw new Exception("Kích thước file quá lớn");
+                throw new Exception("Không có ảnh nào được chọn !");
             }
 
             string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".bmp" };
@@ -60,6 +60,34 @@ namespace TT_LTS_EDU.Helpers
             if (!RegexPassword(request.Password))
             {
                 throw new Exception("Mật khẩu phải có chữ hoa, chữ thường, chữ số và kí tự đặc biệt !");
+            }
+            if (!RegexEmail(request.Email))
+            {
+                throw new Exception("Không đúng định dạng email !");
+            }
+            if (!RegexPhoneNumber(request.Phone))
+            {
+                throw new Exception("Không đúng định dạng số điện thoại !");
+            }
+            return true;
+        }
+
+        public static bool ChangeInformationValidate(ChangeInformationRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FullName)
+               || string.IsNullOrWhiteSpace(request.Email)
+               || string.IsNullOrWhiteSpace(request.Phone)
+               || string.IsNullOrWhiteSpace(request.Address))
+            {
+                throw new Exception("Bạn cần truyền vào đầy đủ thông tin !");
+            }
+            if (CheckLengthOfCharacters(request.FullName))
+            {
+                throw new Exception("Họ và tên phải nhỏ hơn 20 ký tự !");
+            }
+            if (CheckWordCount(request.FullName))
+            {
+                throw new Exception("Họ và tên phải có trên 2 từ !");
             }
             if (!RegexEmail(request.Email))
             {
