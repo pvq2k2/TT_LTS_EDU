@@ -80,14 +80,14 @@ namespace TT_LTS_EDU.Controllers
             return Ok(await _iAuthService.ChangeInformation(request));
         }
 
-        [HttpDelete("RemoveAccount")]
+        [HttpPut("RemoveAccount")]
         [Authorize]
         public async Task<IActionResult> RemoveAccount(int accountID)
         {
             return Ok(await _iAuthService.RemoveAccount(accountID));
         }
 
-        [HttpDelete("RecoverAccount")]
+        [HttpPut("RecoverAccount")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RecoverAccount(int accountID)
         {

@@ -7,9 +7,11 @@ namespace TT_LTS_EDU.Services.Implement
     {
         public readonly AppDbContext _context;
         public readonly AuthConverter _authConverter;
+        public readonly ProductTypeConverter _productTypeConverter;
         public BaseService() {
             _context = new AppDbContext();
             _authConverter = new AuthConverter();
+            _productTypeConverter = new ProductTypeConverter();
         }
     }
 }
