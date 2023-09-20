@@ -10,7 +10,7 @@ namespace TT_LTS_EDU.Services.Interface
         public Task<PageResult<ProductTypeDTO>> GetAllProductType(Pagination pagination);
         public Task<ResponseObject<ProductTypeDTO>> GetProductTypeByID(int productTypeID);
         public Task<ResponseObject<ProductTypeDTO>> CreateProductType(CreateProductTypeRequest request);
-        public Task<ResponseObject<ProductTypeDTO>> UpdateProductType(int productID, UpdateProductTypeRequest request);
+        public Task<ResponseObject<ProductTypeDTO>> UpdateProductType(int productTypeID, UpdateProductTypeRequest request);
         public Task<ResponseObject<string>> RemoveProductType(int productTypeID);
     }
 }

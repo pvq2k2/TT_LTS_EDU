@@ -11,5 +11,16 @@ namespace TT_LTS_EDU.Handle.Converter
                 AuthorityName = decentralization.AuthorityName,
             };
         }
+
+        public List<DecentralizationDTO> ListEntityDecentralizationToDTO(List<Decentralization> listDecentralization)
+        {
+            var listDecentralizationDTO = new List<DecentralizationDTO>();
+            foreach (var item in listDecentralization)
+            {
+                listDecentralizationDTO.Add(EntityDecentralizationToDTO(item));
+            }
+
+            return listDecentralizationDTO;
+        }
     }
 }
