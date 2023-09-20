@@ -110,6 +110,7 @@ namespace TT_LTS_EDU.Services.Implement
 
                 productType.NameProductType = request.NameProductType;
                 productType.ImageTypeProduct = img;
+                productType.UpdatedAt = DateTime.Now;
 
                 _context.ProductType.Update(productType);
                 await _context.SaveChangesAsync();

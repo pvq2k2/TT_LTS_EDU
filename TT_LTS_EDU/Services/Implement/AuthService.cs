@@ -511,6 +511,8 @@ namespace TT_LTS_EDU.Services.Implement
                         account.User.Email = request.Email;
                         account.User.Avatar = avatar;
                         account.User.Address = request.Address;
+                        account.User.UpdatedAt = DateTime.Now;
+                        account.UpdatedAt = DateTime.Now;
 
                         _context.Account.Update(account);
                         await _context.SaveChangesAsync();

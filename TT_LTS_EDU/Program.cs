@@ -51,9 +51,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddTransient<IAuthService, AuthService>();
 builder.Services.AddTransient<IProductTypeService, ProductTypeService>();
+builder.Services.AddTransient<IProductService, ProductService>();
 builder.Services.AddSingleton<ResponseObject<AccountDTO>>();
 builder.Services.AddSingleton<ResponseObject<TokenDTO>>();
 builder.Services.AddSingleton<ResponseObject<ProductTypeDTO>>();
+builder.Services.AddSingleton<ResponseObject<ProductDTO>>();
 builder.Services.AddSingleton<CloudinaryHelper>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
