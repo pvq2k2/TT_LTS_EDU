@@ -53,11 +53,15 @@ builder.Services.AddTransient<IAuthService, AuthService>();
 builder.Services.AddTransient<IProductTypeService, ProductTypeService>();
 builder.Services.AddTransient<IProductService, ProductService>();
 builder.Services.AddTransient<IDecentralizationService, DecentralizationService>();
+builder.Services.AddTransient<IProductImageService, ProductImageService>();
+
 builder.Services.AddSingleton<ResponseObject<AccountDTO>>();
 builder.Services.AddSingleton<ResponseObject<TokenDTO>>();
+builder.Services.AddSingleton<ResponseObject<ProductImageDTO>>();
 builder.Services.AddSingleton<ResponseObject<ProductTypeDTO>>();
 builder.Services.AddSingleton<ResponseObject<ProductDTO>>();
 builder.Services.AddSingleton<ResponseObject<DecentralizationDTO>>();
+
 builder.Services.AddSingleton<CloudinaryHelper>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 

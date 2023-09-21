@@ -10,12 +10,14 @@ namespace TT_LTS_EDU.Services.Implement
         public readonly ProductTypeConverter _productTypeConverter;
         public readonly ProductConverter _productConverter;
         public readonly DecentralizationConverter _decentralizationConverter;
+        public readonly ProductImageConverter _productImageConverter;
         public BaseService() {
             _context = new AppDbContext();
             _authConverter = new AuthConverter();
             _productTypeConverter = new ProductTypeConverter();
             _productConverter = new ProductConverter();
             _decentralizationConverter = new DecentralizationConverter();
+            _productImageConverter = new ProductImageConverter();
         }
     }
 }

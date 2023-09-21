@@ -42,12 +42,12 @@ namespace TT_LTS_EDU.Services.Implement
                 }
                 InputHelper.IsImage(request.AvatarImageProduct!);
 
-                string imgage = await _cloundinaryHelper.UploadImage(request.AvatarImageProduct!, "pizza/product", "product");
+                string image = await _cloundinaryHelper.UploadImage(request.AvatarImageProduct!, "pizza/product", "product");
                 var product = new Product
                 {
                     NameProduct = request.NameProduct,
                     Price = request.Price,
-                    AvatarImageProduct = imgage,
+                    AvatarImageProduct = image,
                     Discount = request.Discount,
                     Title = request.Title,
                     Status = (int)Status.Active,

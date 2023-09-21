@@ -28,10 +28,10 @@ namespace TT_LTS_EDU.Services.Implement
                 }
                 InputHelper.IsImage(request.ImageTypeProduct!);
 
-                string imgage = await _cloundinaryHelper.UploadImage(request.ImageTypeProduct!, "pizza/productType", "product-type");
+                string image = await _cloundinaryHelper.UploadImage(request.ImageTypeProduct!, "pizza/productType", "product-type");
                 var productType = new ProductType { 
                     NameProductType = request.NameProductType,
-                    ImageTypeProduct = imgage
+                    ImageTypeProduct = image
                 };
 
                 await _context.ProductType.AddAsync(productType);
