@@ -84,10 +84,40 @@ namespace TT_LTS_EDU.Services.Implement
             {
                 return _response.ResponseError(StatusCodes.Status400BadRequest, "Sản phẩm không tồn tại !", null!);
             }
+            return _response.ResponseSuccess("Thành công !", _productConverter.EntityProductToDTO(product));
+        }
+
+        public async Task<ResponseObject<ProductDTO>> GetProductByIDAndUpdateView(int productID)
+        {
+            var product = await _context.Product.FirstOrDefaultAsync(x => x.ID == productID);
+            if (product == null)
+            {
+                return _response.ResponseError(StatusCodes.Status400BadRequest, "Sản phẩm không tồn tại !", null!);
+            }
             product.NumberOfViews++;
             _context.Product.Update(product);
             await _context.SaveChangesAsync();
             return _response.ResponseSuccess("Thành công !", _productConverter.EntityProductToDTO(product));
+        }
+
+        public async Task<ResponseObject<List<ProductDTO>>> GetRelatedProducts(int productID)
+        {
+            var response = new ResponseObject<List<ProductDTO>>();
+            var currentProduct = await _context.Product.FirstOrDefaultAsync(p => p.ID == productID);
+
+            if (currentProduct == null)
+            {
+                return response.ResponseError(StatusCodes.Status404NotFound, "Sản phẩm không tồn tại !", null!);
+            }
+
+            var relatedProducts = _context.Product
+            .Where(p => p.ProductTypeID == currentProduct.ProductTypeID && p.ID != currentProduct.ID)
+            .OrderByDescending(p => p.NumberOfViews)
+            .Take(5)
+            .ToList();
+
+            return response.ResponseSuccess("Thành công !", _productConverter.ListEntityProductToDTO(relatedProducts));
+
         }
 
         public async Task<ResponseObject<string>> RemoveProduct(int productID)

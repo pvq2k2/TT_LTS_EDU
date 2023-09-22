@@ -9,7 +9,7 @@ namespace TT_LTS_EDU.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public class ProductImageController : ControllerBase
     {
         private readonly IProductImageService _productImageService;
@@ -26,7 +26,7 @@ namespace TT_LTS_EDU.Controllers
         }
 
         [HttpGet("GetProductImageByID")]
-        public async Task<IActionResult> GetProductByID(int productID)
+        public async Task<IActionResult> GetProductImageByID(int productID)
         {
             return Ok(await _productImageService.GetProductImageByID(productID));
         }

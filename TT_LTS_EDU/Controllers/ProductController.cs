@@ -8,7 +8,6 @@ namespace TT_LTS_EDU.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;
@@ -25,24 +24,40 @@ namespace TT_LTS_EDU.Controllers
         }
 
         [HttpGet("GetProductByID")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetProductByID(int productID)
         {
             return Ok(await _productService.GetProductByID(productID));
         }
 
+        [HttpGet("GetProductByIDAndUpdateView")]
+        public async Task<IActionResult> GetProductByIDAndUpdateView(int productID)
+        {
+            return Ok(await _productService.GetProductByIDAndUpdateView(productID));
+        }
+
+        [HttpGet("GetRelatedProducts")]
+        public async Task<IActionResult> GetRelatedProducts(int productID)
+        {
+            return Ok(await _productService.GetRelatedProducts(productID));
+        }
+
         [HttpPost("CreateProduct")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateProduct([FromForm] CreateProductRequest request)
         {
             return Ok(await _productService.CreateProduct(request));
         }
 
         [HttpPut("UpdateProduct")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateProduct(int productID, [FromForm] UpdateProductRequest request)
         {
             return Ok(await _productService.UpdateProduct(productID, request));
         }
 
         [HttpDelete("RemoveProduct")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RemoveProduct(int productID)
         {
             return Ok(await _productService.RemoveProduct(productID));
