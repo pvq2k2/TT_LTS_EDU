@@ -42,6 +42,12 @@ namespace TT_LTS_EDU.Controllers
             return Ok(await _productService.GetRelatedProducts(productID));
         }
 
+        [HttpGet("GetFeaturedProduct")]
+        public async Task<IActionResult> GetFeaturedProduct()
+        {
+            return Ok(await _productService.GetFeaturedProduct());
+        }
+
         [HttpPost("CreateProduct")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateProduct([FromForm] CreateProductRequest request)

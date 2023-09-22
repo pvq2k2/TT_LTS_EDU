@@ -9,6 +9,7 @@ namespace TT_LTS_EDU.Services.Interface
     {
         public Task<PageResult<ProductDTO>> GetAllProduct(Pagination pagination);
         public Task<ResponseObject<List<ProductDTO>>> GetRelatedProducts(int productID);
+        public Task<ResponseObject<List<ProductDTO>>> GetFeaturedProduct();
         public Task<ResponseObject<ProductDTO>> GetProductByID(int productID);
         public Task<ResponseObject<ProductDTO>> GetProductByIDAndUpdateView(int productID);
         public Task<ResponseObject<ProductDTO>> CreateProduct(CreateProductRequest request);

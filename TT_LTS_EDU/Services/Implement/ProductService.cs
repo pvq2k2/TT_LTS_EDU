@@ -77,6 +77,18 @@ namespace TT_LTS_EDU.Services.Implement
             return new PageResult<ProductDTO>(pagination, _productConverter.ListEntityProductToDTO(result.ToList()));
         }
 
+        public async Task<ResponseObject<List<ProductDTO>>> GetFeaturedProduct()
+        {
+            var response = new ResponseObject<List<ProductDTO>>();
+
+            var topProducts = await _context.Product
+            .OrderByDescending(p => p.NumberOfViews)
+            .Take(10)
+            .ToListAsync();
+
+            return response.ResponseSuccess("Thành công !", _productConverter.ListEntityProductToDTO(topProducts));
+        }
+
         public async Task<ResponseObject<ProductDTO>> GetProductByID(int productID)
         {
             var product = await _context.Product.FirstOrDefaultAsync(x => x.ID == productID);
