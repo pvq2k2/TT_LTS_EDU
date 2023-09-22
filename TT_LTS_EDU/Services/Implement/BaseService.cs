@@ -5,12 +5,13 @@ namespace TT_LTS_EDU.Services.Implement
 {
     public class BaseService
     {
-        public readonly AppDbContext _context;
-        public readonly AuthConverter _authConverter;
-        public readonly ProductTypeConverter _productTypeConverter;
-        public readonly ProductConverter _productConverter;
-        public readonly DecentralizationConverter _decentralizationConverter;
-        public readonly ProductImageConverter _productImageConverter;
+        protected readonly AppDbContext _context;
+        protected readonly AuthConverter _authConverter;
+        protected readonly ProductTypeConverter _productTypeConverter;
+        protected readonly ProductConverter _productConverter;
+        protected readonly DecentralizationConverter _decentralizationConverter;
+        protected readonly ProductImageConverter _productImageConverter;
+        protected readonly ProductReviewConverter _productReviewConverter;
         public BaseService() {
             _context = new AppDbContext();
             _authConverter = new AuthConverter();
@@ -18,6 +19,7 @@ namespace TT_LTS_EDU.Services.Implement
             _productConverter = new ProductConverter();
             _decentralizationConverter = new DecentralizationConverter();
             _productImageConverter = new ProductImageConverter();
+            _productReviewConverter = new ProductReviewConverter();
         }
     }
 }
