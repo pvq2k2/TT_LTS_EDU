@@ -14,6 +14,7 @@ namespace TT_LTS_EDU.Handle.Converter
         public AccountDTO EntityAccountToDTO(Account account)
         {
             return new AccountDTO {
+                AccountID = account.ID,
                 UserName = account.UserName,
                 UserDTO = _userConverter.EntityUserToDTO(account.User!),
                 DecentralizationDTO = _decentralizationConverter.EntityDecentralizationToDTO(account.Decentralization!)

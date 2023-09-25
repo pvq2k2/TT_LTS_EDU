@@ -9,6 +9,7 @@ namespace TT_LTS_EDU.Handle.Converter
         {
             return new ProductDTO
             {
+                ProductID = product.ID,
                 NameProduct = product.NameProduct,
                 Price = product.Price,
                 AvatarImageProduct = product.AvatarImageProduct,

@@ -12,41 +12,41 @@ namespace TT_LTS_EDU.Controllers
     [Authorize(Roles = "Admin")]
     public class ProductTypeController : ControllerBase
     {
-        private readonly IProductTypeService _productTypeService;
+        private readonly IProductTypeService _iProductTypeService;
 
-        public ProductTypeController(IProductTypeService productTypeService)
+        public ProductTypeController(IProductTypeService iProductTypeService)
         {
-            _productTypeService = productTypeService;
+            _iProductTypeService = iProductTypeService;
         }
 
         [HttpPost("GetAllProductType")]
         public async Task<IActionResult> GetAllProductType(Pagination pagination)
         {
-            return Ok(await _productTypeService.GetAllProductType(pagination));
+            return Ok(await _iProductTypeService.GetAllProductType(pagination));
         }
 
         [HttpGet("GetProductTypeByID")]
         public async Task<IActionResult> GetProductByID(int productID)
         {
-            return Ok(await _productTypeService.GetProductTypeByID(productID));
+            return Ok(await _iProductTypeService.GetProductTypeByID(productID));
         }
 
         [HttpPost("CreateProductType")]
         public async Task<IActionResult> CreateProductType([FromForm] CreateProductTypeRequest request)
         {
-            return Ok(await _productTypeService.CreateProductType(request));
+            return Ok(await _iProductTypeService.CreateProductType(request));
         }
 
         [HttpPut("UpdateProductType")]
         public async Task<IActionResult> UpdateProductType(int productTypeID, [FromForm] UpdateProductTypeRequest request)
         {
-            return Ok(await _productTypeService.UpdateProductType(productTypeID, request));
+            return Ok(await _iProductTypeService.UpdateProductType(productTypeID, request));
         }
 
         [HttpDelete("RemoveProductType")]
         public async Task<IActionResult> RemoveProductType(int productTypeID)
         {
-            return Ok(await _productTypeService.RemoveProductType(productTypeID));
+            return Ok(await _iProductTypeService.RemoveProductType(productTypeID));
         }
     }
 }

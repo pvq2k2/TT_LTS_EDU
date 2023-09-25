@@ -9,6 +9,7 @@ namespace TT_LTS_EDU.Handle.Converter
         {
             return new ProductImageDTO
             {
+                ProductImageID = productImage.ID,
                 Title = productImage.Title,
                 ImageProduct = productImage.ImageProduct,
                 Status = productImage.Status

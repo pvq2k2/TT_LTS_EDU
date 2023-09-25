@@ -12,41 +12,41 @@ namespace TT_LTS_EDU.Controllers
     [Authorize(Roles = "Admin")]
     public class ProductImageController : ControllerBase
     {
-        private readonly IProductImageService _productImageService;
+        private readonly IProductImageService _iProductImageService;
 
-        public ProductImageController(IProductImageService productImageService)
+        public ProductImageController(IProductImageService iProductImageService)
         {
-            _productImageService = productImageService;
+            _iProductImageService = iProductImageService;
         }
 
         [HttpPost("GetAllProductImage")]
         public async Task<IActionResult> GetAllProductImage(Pagination pagination)
         {
-            return Ok(await _productImageService.GetAllProductImage(pagination));
+            return Ok(await _iProductImageService.GetAllProductImage(pagination));
         }
 
         [HttpGet("GetProductImageByID")]
         public async Task<IActionResult> GetProductImageByID(int productID)
         {
-            return Ok(await _productImageService.GetProductImageByID(productID));
+            return Ok(await _iProductImageService.GetProductImageByID(productID));
         }
 
         [HttpPost("CreateProductImage")]
         public async Task<IActionResult> CreateProductImage([FromForm] CreateProductImageRequest request)
         {
-            return Ok(await _productImageService.CreateProductImage(request));
+            return Ok(await _iProductImageService.CreateProductImage(request));
         }
 
         [HttpPut("UpdateProductImage")]
         public async Task<IActionResult> UpdateProductImage(int productImageID, [FromForm] UpdateProductImageRequest request)
         {
-            return Ok(await _productImageService.UpdateProductImage(productImageID, request));
+            return Ok(await _iProductImageService.UpdateProductImage(productImageID, request));
         }
 
         [HttpDelete("RemoveProductImage")]
         public async Task<IActionResult> RemoveProductImage(int productImageID)
         {
-            return Ok(await _productImageService.RemoveProductImage(productImageID));
+            return Ok(await _iProductImageService.RemoveProductImage(productImageID));
         }
     }
 }

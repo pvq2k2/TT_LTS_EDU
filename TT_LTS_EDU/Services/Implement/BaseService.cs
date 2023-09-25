@@ -12,6 +12,7 @@ namespace TT_LTS_EDU.Services.Implement
         protected readonly DecentralizationConverter _decentralizationConverter;
         protected readonly ProductImageConverter _productImageConverter;
         protected readonly ProductReviewConverter _productReviewConverter;
+        protected readonly CartConverter _cartConverter;
         public BaseService() {
             _context = new AppDbContext();
             _authConverter = new AuthConverter();
@@ -20,6 +21,7 @@ namespace TT_LTS_EDU.Services.Implement
             _decentralizationConverter = new DecentralizationConverter();
             _productImageConverter = new ProductImageConverter();
             _productReviewConverter = new ProductReviewConverter();
+            _cartConverter = new CartConverter();
         }
     }
 }

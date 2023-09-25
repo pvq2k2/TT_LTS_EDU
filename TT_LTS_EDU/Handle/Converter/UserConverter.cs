@@ -9,6 +9,7 @@ namespace TT_LTS_EDU.Handle.Converter
         public UserDTO EntityUserToDTO(User user)
         {
             return new UserDTO { 
+                UserID = user.ID,
                 FullName = user.FullName,
                 Phone = user.Phone,
                 Avatar = user.Avatar,

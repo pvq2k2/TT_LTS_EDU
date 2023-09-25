@@ -9,6 +9,7 @@ namespace TT_LTS_EDU.Handle.Converter
         {
             return new ProductReviewDTO
             {
+                ProductReviewID = productReview.ID,
                 ContentRated = productReview.ContentRated,
                 PointEvaluation = productReview.PointEvaluation,
                 ContentSeen = productReview.ContentSeen,

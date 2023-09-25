@@ -11,41 +11,41 @@ namespace TT_LTS_EDU.Controllers
     [Authorize(Roles = "Admin")]
     public class DecentralizationController : ControllerBase
     {
-        private readonly IDecentralizationService _decentralizationService;
+        private readonly IDecentralizationService _iDecentralizationService;
 
-        public DecentralizationController(IDecentralizationService decentralizationService)
+        public DecentralizationController(IDecentralizationService iDecentralizationService)
         {
-            _decentralizationService = decentralizationService;
+            _iDecentralizationService = iDecentralizationService;
         }
 
         [HttpPost("GetAllDecentralization")]
         public async Task<IActionResult> GetAllDecentralization(Pagination pagination)
         {
-            return Ok(await _decentralizationService.GetAllDecentralization(pagination));
+            return Ok(await _iDecentralizationService.GetAllDecentralization(pagination));
         }
 
         [HttpGet("GetDecentralizationByID")]
         public async Task<IActionResult> GetDecentralizationByID(int decentralizationID)
         {
-            return Ok(await _decentralizationService.GetDecentralizationByID(decentralizationID));
+            return Ok(await _iDecentralizationService.GetDecentralizationByID(decentralizationID));
         }
 
         [HttpPost("CreateDecentralization")]
         public async Task<IActionResult> CreateDecentralization(CreateDecentralizationRequest request)
         {
-            return Ok(await _decentralizationService.CreateDecentralization(request));
+            return Ok(await _iDecentralizationService.CreateDecentralization(request));
         }
 
         [HttpPut("UpdateDecentralization")]
         public async Task<IActionResult> UpdateDecentralization(int decentralizationID, UpdateDecentralizationRequest request)
         {
-            return Ok(await _decentralizationService.UpdateDecentralization(decentralizationID, request));
+            return Ok(await _iDecentralizationService.UpdateDecentralization(decentralizationID, request));
         }
 
         [HttpDelete("RemoveDecentralization")]
         public async Task<IActionResult> RemoveDecentralization(int decentralizationID)
         {
-            return Ok(await _decentralizationService.RemoveDecentralization(decentralizationID));
+            return Ok(await _iDecentralizationService.RemoveDecentralization(decentralizationID));
         }
     }
 }
