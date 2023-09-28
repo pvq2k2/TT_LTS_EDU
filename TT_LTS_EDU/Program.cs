@@ -11,6 +11,7 @@ using TT_LTS_EDU.Services.Implement;
 using TT_LTS_EDU.Services.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 // Add services to the container.
 
@@ -32,6 +33,15 @@ builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<SecurityRequirementsOperationFilter>();
 });
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          //policy.WithOrigins("http://localhost:5173/").AllowAnyMethod().AllowAnyHeader();
+                          policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+                      });
+});
 //builder.Services.AddDbContext<AppDbContext>(options =>
 //{
 //    options.UseSqlServer(builder.Configuration.GetSection("AppSettings:MyDB").Value);
@@ -56,7 +66,10 @@ builder.Services.AddTransient<IDecentralizationService, DecentralizationService>
 builder.Services.AddTransient<IProductImageService, ProductImageService>();
 builder.Services.AddTransient<IProductReviewService, ProductReviewService>();
 builder.Services.AddTransient<ICartService, CartService>();
+builder.Services.AddTransient<IOrderService, OrderService>();
 builder.Services.AddTransient<TokenHelper>();
+builder.Services.AddTransient<GHNHelper>();
+builder.Services.AddTransient<VNPayHelper>();
 
 
 builder.Services.AddSingleton<ResponseObject<AccountDTO>>();
@@ -67,6 +80,7 @@ builder.Services.AddSingleton<ResponseObject<ProductDTO>>();
 builder.Services.AddSingleton<ResponseObject<ProductReviewDTO>>();
 builder.Services.AddSingleton<ResponseObject<DecentralizationDTO>>();
 builder.Services.AddSingleton<ResponseObject<CartDTO>>();
+builder.Services.AddSingleton<ResponseObject<OrderDTO>>();
 
 builder.Services.AddSingleton<CloudinaryHelper>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
@@ -84,6 +98,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors(MyAllowSpecificOrigins);
 
 app.UseHttpsRedirection();
 

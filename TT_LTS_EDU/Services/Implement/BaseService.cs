@@ -13,6 +13,7 @@ namespace TT_LTS_EDU.Services.Implement
         protected readonly ProductImageConverter _productImageConverter;
         protected readonly ProductReviewConverter _productReviewConverter;
         protected readonly CartConverter _cartConverter;
+        protected readonly OrderConverter _orderConverter;
         public BaseService() {
             _context = new AppDbContext();
             _authConverter = new AuthConverter();
@@ -22,6 +23,7 @@ namespace TT_LTS_EDU.Services.Implement
             _productImageConverter = new ProductImageConverter();
             _productReviewConverter = new ProductReviewConverter();
             _cartConverter = new CartConverter();
+            _orderConverter = new OrderConverter();
         }
     }
 }

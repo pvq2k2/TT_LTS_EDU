@@ -7,7 +7,6 @@ using MimeKit.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 using TT_LTS_EDU.Entities;
 using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
@@ -16,7 +15,7 @@ using TT_LTS_EDU.Helpers;
 using TT_LTS_EDU.Services.Interface;
 using TT_LTS_EDU.Enums;
 using QuanLyTrungTam_API.Helper;
-using Azure;
+using CloudinaryDotNet;
 
 namespace TT_LTS_EDU.Services.Implement
 {
@@ -25,16 +24,20 @@ namespace TT_LTS_EDU.Services.Implement
         private readonly ResponseObject<AccountDTO> _responseAccount;
         private readonly ResponseObject<TokenDTO> _responseAuth;
         private readonly IConfiguration _configuration;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly CloudinaryHelper _cloudinaryHelper;
+        private readonly TokenHelper _tokenHelper;
 
-        public AuthService(ResponseObject<AccountDTO> responseAccount, ResponseObject<TokenDTO> responseAuth, IConfiguration configuration, IHttpContextAccessor httpContextAccessor, CloudinaryHelper cloudinaryHelper)
+        public AuthService(ResponseObject<AccountDTO> responseAccount,
+            ResponseObject<TokenDTO> responseAuth,
+            IConfiguration configuration,
+            CloudinaryHelper cloudinaryHelper,
+            TokenHelper tokenHelper)
         {
             _responseAccount = responseAccount;
             _responseAuth = responseAuth;
             _configuration = configuration;
-            _httpContextAccessor = httpContextAccessor;
             _cloudinaryHelper = cloudinaryHelper;
+            _tokenHelper = tokenHelper;
         }
         #region Private Function
         private static string CreateRandomToken()
@@ -64,7 +67,7 @@ namespace TT_LTS_EDU.Services.Implement
             }
         }
 
-        private string CreateAccessToken(Account account)
+        private string CreateAccessToken(Entities.Account account)
         {
             var claims = new List<Claim>
             {
@@ -104,30 +107,7 @@ namespace TT_LTS_EDU.Services.Implement
             return refreshToken;
         }
 
-        private bool ValidateToken(string jwtToken)
-        {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:AccessTokenSecret").Value!);
 
-            var tokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ClockSkew = TimeSpan.Zero
-            };
-
-            try
-            {
-                var principal = tokenHandler.ValidateToken(jwtToken, tokenValidationParameters, out SecurityToken validatedToken);
-                return true;
-            }
-            catch (SecurityTokenException)
-            {
-                return false;
-            }
-        }
         #endregion
 
 
@@ -167,59 +147,56 @@ namespace TT_LTS_EDU.Services.Implement
                 }
                 string avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
 
-                using (var Tran = _context.Database.BeginTransaction())
+                using var tran = _context.Database.BeginTransaction();
+                try
                 {
-                    try
+                    var Account = new Entities.Account
                     {
-                        var Account = new Account
-                        {
-                            UserName = request.UserName,
-                            Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                            Status = (int)Status.InActive,
-                            DecentralizationID = (int)Enums.Decentralization.User,
-                            VerificationToken = CreateRandomToken()
-                        };
-                        await _context.Account.AddAsync(Account);
-                        await _context.SaveChangesAsync();
+                        UserName = request.UserName,
+                        Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                        Status = (int)Status.InActive,
+                        DecentralizationID = (int)Enums.Decentralization.User,
+                        VerificationToken = CreateRandomToken()
+                    };
+                    await _context.Account.AddAsync(Account);
+                    await _context.SaveChangesAsync();
 
-                        var User = new User
-                        {
-                            FullName = InputHelper.NormalizeName(request.FullName),
-                            Phone = request.Phone,
-                            Email = request.Email,
-                            Avatar = avatar,
-                            Address = request.Address,
-                            AccountID = Account.ID
-                        };
-
-                        await _context.User.AddAsync(User);
-                        await _context.SaveChangesAsync();
-
-                        var EmailContent = new EmailFormat
-                        {
-                            To = request.Email,
-                            Subject = "Xác thực tài khoản",
-                            Body = EmailTemplate.MailTemplateString(User.FullName!, User.Email!,
-                            "Vui lòng nhấp vào nút kích hoạt tài khoản để kích hoạt tài khoản !",
-                            $"https://localhost:7299/api/Auth/Verify/{Account.VerificationToken}",
-                            "Kích hoạt tài khoản")
-                        };
-                        SendEmail(EmailContent);
-
-
-                        var currentAccount = await _context.Account
-                            .Include(x => x.User)
-                            .Include(x => x.Decentralization)
-                            .FirstOrDefaultAsync(x => x.ID == Account.ID);
-                        await Tran.CommitAsync();
-                        return _responseAccount.ResponseSuccess("Tạo tài khoản thành công !", _authConverter.EntityAccountToDTO(currentAccount!));
-                    }
-                    catch (Exception ex)
+                    var User = new User
                     {
-                        await Tran.RollbackAsync();
-                        throw new Exception(ex.Message);
-                    }
+                        FullName = InputHelper.NormalizeName(request.FullName),
+                        Phone = request.Phone,
+                        Email = request.Email,
+                        Avatar = avatar,
+                        Address = request.Address,
+                        AccountID = Account.ID
+                    };
 
+                    await _context.User.AddAsync(User);
+                    await _context.SaveChangesAsync();
+
+                    var EmailContent = new EmailFormat
+                    {
+                        To = request.Email,
+                        Subject = "Xác thực tài khoản",
+                        Body = EmailTemplate.MailTemplateString(User.FullName!, User.Email!,
+                        "Vui lòng nhấp vào nút kích hoạt tài khoản để kích hoạt tài khoản !",
+                        $"https://localhost:7299/api/Auth/Verify/{Account.VerificationToken}",
+                        "Kích hoạt tài khoản")
+                    };
+                    SendEmail(EmailContent);
+
+
+                    var currentAccount = await _context.Account
+                        .Include(x => x.User)
+                        .Include(x => x.Decentralization)
+                        .FirstOrDefaultAsync(x => x.ID == Account.ID);
+                    await tran.CommitAsync();
+                    return _responseAccount.ResponseSuccess("Tạo tài khoản thành công !", _authConverter.EntityAccountToDTO(currentAccount!));
+                }
+                catch (Exception ex)
+                {
+                    await tran.RollbackAsync();
+                    throw new Exception(ex.Message);
                 }
             }
             catch (Exception ex)
@@ -232,25 +209,8 @@ namespace TT_LTS_EDU.Services.Implement
         {
             try
             {
-                var authorizationHeader = _httpContextAccessor?.HttpContext?.Request.Headers["Authorization"].FirstOrDefault();
-                if (string.IsNullOrEmpty(authorizationHeader))
-                {
-                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
-                }
+                _tokenHelper.IsToken();
 
-
-                if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                {
-                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
-                }
-
-
-                var jwtToken = authorizationHeader["Bearer ".Length..].Trim();
-
-                if (!ValidateToken(jwtToken))
-                {
-                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ !", null!);
-                }
                 var existingRefreshToken = _context.RefreshToken.FirstOrDefault(x => x.Token == refreshToken);
 
                 if (existingRefreshToken == null)
@@ -387,34 +347,15 @@ namespace TT_LTS_EDU.Services.Implement
         public async Task<ResponseObject<string>> ChangePassword(ChangePasswordRequest request)
         {
             var response = new ResponseObject<string>();
-
-            var authorizationHeader = _httpContextAccessor?.HttpContext?.Request.Headers["Authorization"].FirstOrDefault();
-            if (string.IsNullOrEmpty(authorizationHeader))
+            try
             {
-                return response.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
-            }
+                _tokenHelper.IsToken();
+                var accountID = _tokenHelper.GetUserID();
+                var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == accountID);
 
-
-            if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            {
-                return response.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
-            }
-
-
-            var jwtToken = authorizationHeader["Bearer ".Length..].Trim();
-
-            if (!ValidateToken(jwtToken))
-            {
-                return response.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ !", null!);
-            }
-
-            var accountIDClaim = _httpContextAccessor?.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == "ID");
-            if (accountIDClaim != null && int.TryParse(accountIDClaim.Value, out int accountId))
-            {
-                var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == accountId);
                 if (account == null)
                 {
-                    return response.ResponseError(StatusCodes.Status404NotFound, "Không tìm thấy tài khoản !", null!);
+                    return response.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại !", null!);
                 }
 
                 if (!BCrypt.Net.BCrypt.Verify(request.OddPassword, account.Password))
@@ -428,9 +369,9 @@ namespace TT_LTS_EDU.Services.Implement
 
                 return response.ResponseSuccess("Thay đổi mật khẩu thành công !", null!);
             }
-            else
+            catch (Exception ex)
             {
-                return response.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại !", null!);
+                return response.ResponseError(StatusCodes.Status500InternalServerError, ex.Message, null!);
             }
         }
 
@@ -438,7 +379,7 @@ namespace TT_LTS_EDU.Services.Implement
         {
             var query = _context.Account.Include(x => x.User).Include(x => x.Decentralization).OrderByDescending(x => x.ID).AsQueryable();
 
-            var result = PageResult<Account>.ToPageResult(pagination, query);
+            var result = PageResult<Entities.Account>.ToPageResult(pagination, query);
             pagination.TotalCount = await query.CountAsync();
 
             var list = result.ToList();
@@ -462,65 +403,46 @@ namespace TT_LTS_EDU.Services.Implement
             {
                 InputHelper.ChangeInformationValidate(request);
 
-                var authorizationHeader = _httpContextAccessor?.HttpContext?.Request.Headers["Authorization"].FirstOrDefault();
-                if (string.IsNullOrEmpty(authorizationHeader))
+                _tokenHelper.IsToken();
+                var accountID = _tokenHelper.GetUserID();
+                var account = await _context.Account.Include(x => x.User).Include(x => x.Decentralization).FirstOrDefaultAsync(x => x.ID == accountID);
+                
+                if (account == null)
                 {
-                    return _responseAccount.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
+                    return _responseAccount.ResponseError(StatusCodes.Status404NotFound, "Không tìm thấy tài khoản !", null!);     
                 }
 
-
-                if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                if (await _context.User.AnyAsync(x => x.Email == request.Email) && request.Email != account.User!.Email)
                 {
-                    return _responseAccount.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ!", null!);
+                    return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Email đã được sử dụng !", null!);
                 }
-
-                var jwtToken = authorizationHeader["Bearer ".Length..].Trim();
-
-                if (!ValidateToken(jwtToken))
+                if (await _context.User.AnyAsync(x => x.Phone == request.Phone) && request.Phone != account.User!.Phone)
                 {
-                    return _responseAccount.ResponseError(StatusCodes.Status401Unauthorized, "Xác thực không hợp lệ !", null!);
+                    return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null!);
                 }
-
-                var accountIDClaim = _httpContextAccessor?.HttpContext?.User.Claims.FirstOrDefault(c => c.Type == "ID");
-
-                if (accountIDClaim != null && int.TryParse(accountIDClaim.Value, out int accountId))
+                string avatar;
+                if (request.Avatar != null)
                 {
-                    var account = await _context.Account.Include(x => x.User).Include(x => x.Decentralization).FirstOrDefaultAsync(x => x.ID == accountId);
-                    if (account != null)
-                    {
-                        if (await _context.User.AnyAsync(x => x.Email == request.Email) && request.Email != account.User!.Email)
-                        {
-                            return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Email đã được sử dụng !", null!);
-                        }
-                        if (await _context.User.AnyAsync(x => x.Phone == request.Phone) && request.Phone != account.User!.Phone)
-                        {
-                            return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null!);
-                        }
-                        string avatar;
-                        if (request.Avatar != null)
-                        {
-                            InputHelper.IsImage(request.Avatar!);
-                            avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
-                            await _cloudinaryHelper.DeleteImageByUrl(account.User!.Avatar);
-                        } else
-                        {
-                            avatar = account.User!.Avatar;
-                        }
-                        account.User!.FullName = request.FullName;
-                        account.User.Phone = request.Phone;
-                        account.User.Email = request.Email;
-                        account.User.Avatar = avatar;
-                        account.User.Address = request.Address;
-                        account.User.UpdatedAt = DateTime.Now;
-                        account.UpdatedAt = DateTime.Now;
-
-                        _context.Account.Update(account);
-                        await _context.SaveChangesAsync();
-
-                        return _responseAccount.ResponseSuccess("Cập nhật thông tin thành công !", _authConverter.EntityAccountToDTO(account));
-                    }
+                    InputHelper.IsImage(request.Avatar!);
+                    avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
+                    await _cloudinaryHelper.DeleteImageByUrl(account.User!.Avatar);
                 }
-                return _responseAccount.ResponseError(StatusCodes.Status404NotFound, "Không tìm thấy tài khoản !", null!);
+                else
+                {
+                    avatar = account.User!.Avatar;
+                }
+                account.User!.FullName = request.FullName;
+                account.User.Phone = request.Phone;
+                account.User.Email = request.Email;
+                account.User.Avatar = avatar;
+                account.User.Address = request.Address;
+                account.User.UpdatedAt = DateTime.Now;
+                account.UpdatedAt = DateTime.Now;
+
+                _context.Account.Update(account);
+                await _context.SaveChangesAsync();
+
+                return _responseAccount.ResponseSuccess("Cập nhật thông tin thành công !", _authConverter.EntityAccountToDTO(account));
             }
             catch (Exception ex)
             {
@@ -528,7 +450,7 @@ namespace TT_LTS_EDU.Services.Implement
             }
         }
 
-        public async Task<ResponseObject<string>> RemoveAccount(int accountID)
+        public async Task<ResponseObject<string>> ChangeStatus(int accountID, int status)
         {
             var response = new ResponseObject<string>();
             var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == accountID);
@@ -538,28 +460,16 @@ namespace TT_LTS_EDU.Services.Implement
                 return response.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại !", null!);
             }
 
-            account.Status = (int)Status.InActive;
-            _context.Account.Update(account);
-            await _context.SaveChangesAsync();
-
-            return response.ResponseSuccess("Xóa tài khoản thành công !", null!);
-        }
-
-        public async Task<ResponseObject<string>> RecoverAccount(int accountID)
-        {
-            var response = new ResponseObject<string>();
-            var account = await _context.Account.FirstOrDefaultAsync(x => x.ID == accountID);
-
-            if (account == null)
+            if (status != 1 || status != 2)
             {
-                return response.ResponseError(StatusCodes.Status404NotFound, "Tài khoản không tồn tại !", null!);
+                return response.ResponseError(StatusCodes.Status400BadRequest, "Trạng thái không đúng!", null!);
             }
 
-            account.Status = (int)Status.Active;
+            account.Status = status;
             _context.Account.Update(account);
             await _context.SaveChangesAsync();
 
-            return response.ResponseSuccess("Khôi phục tài khoản thành công !", null!);
+            return response.ResponseSuccess("Chuyển trạng thái thành công !", null!);
         }
     }
 }

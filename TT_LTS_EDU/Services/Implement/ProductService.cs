@@ -23,19 +23,7 @@ namespace TT_LTS_EDU.Services.Implement
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(request.NameProduct)
-                    || string.IsNullOrWhiteSpace(request.Title))
-                {
-                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập đầy đủ thông tin !", null!);
-                }
-                if (request.Price < 0)
-                {
-                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập giá tiền lớn hơn !", null!);
-                }
-                if (request.Discount != null && request.Discount < 0)
-                {
-                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập giảm giá lớn hơn !", null!);
-                }
+                InputHelper.CreateProductValidate(request);
                 if (!await _context.ProductType.AnyAsync(x => x.ID == request.ProductTypeID))
                 {
                     return _response.ResponseError(StatusCodes.Status404NotFound, "Danh mục không tồn tại !", null!);
@@ -156,20 +144,7 @@ namespace TT_LTS_EDU.Services.Implement
                 {
                     return _response.ResponseError(StatusCodes.Status404NotFound, "Sản phẩm không tồn tại !", null!);
                 }
-
-                if (string.IsNullOrWhiteSpace(request.NameProduct)
-                   || string.IsNullOrWhiteSpace(request.Title))
-                {
-                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập đầy đủ thông tin !", null!);
-                }
-                if (request.Price < 0)
-                {
-                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập giá tiền lớn hơn !", null!);
-                }
-                if (request.Discount != null && request.Discount < 0)
-                {
-                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập giảm giá lớn hơn !", null!);
-                }
+                InputHelper.UpdateProductValidate(request);
                 if (!await _context.ProductType.AnyAsync(x => x.ID == request.ProductTypeID))
                 {
                     return _response.ResponseError(StatusCodes.Status404NotFound, "Danh mục không tồn tại !", null!);

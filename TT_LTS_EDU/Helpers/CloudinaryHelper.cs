@@ -25,23 +25,21 @@ namespace TT_LTS_EDU.Helpers
             // Bắt đầu tạo thư mục từ thư mục gốc
             CreateFolderRecursively(folders, 0);
 
-            using (var stream = file.OpenReadStream())
+            using var stream = file.OpenReadStream();
+            var uploadParams = new ImageUploadParams()
             {
-                var uploadParams = new ImageUploadParams()
-                {
-                    File = new FileDescription(file.FileName, stream),
-                    PublicId = fileName + "-" + "image" + "-" + DateTime.Now.Ticks,
-                    Folder = folderPath
-                    //Transformation = new Transformation().Width(300).Height(400).Crop("fill")
-                };
-                var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-                if (uploadResult.Error != null)
-                {
-                    throw new Exception(uploadResult.Error.Message);
-                }
-                string imageUrl = uploadResult.SecureUrl.ToString();
-                return imageUrl;
+                File = new FileDescription(file.FileName, stream),
+                PublicId = fileName + "-" + "image" + "-" + DateTime.Now.Ticks,
+                Folder = folderPath
+                //Transformation = new Transformation().Width(300).Height(400).Crop("fill")
+            };
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            if (uploadResult.Error != null)
+            {
+                throw new Exception(uploadResult.Error.Message);
             }
+            string imageUrl = uploadResult.SecureUrl.ToString();
+            return imageUrl;
         }
 
         private void CreateFolderRecursively(string[] folders, int currentIndex)

@@ -16,7 +16,11 @@ namespace TT_LTS_EDU.Handle.Converter
                 Title = product.Title,
                 Discount = product.Discount,
                 Status = product.Status,
-                NumberOfViews = product.NumberOfViews
+                NumberOfViews = product.NumberOfViews,
+                Height = product.Height,
+                Width = product.Width,
+                Length = product.Length,
+                Weight = product.Weight
             };
         }
 

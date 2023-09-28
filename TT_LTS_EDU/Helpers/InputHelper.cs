@@ -1,6 +1,9 @@
-﻿using System.Globalization;
+﻿using Azure;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
+using TT_LTS_EDU.Handle.Request.OrderRequest;
+using TT_LTS_EDU.Handle.Request.ProductRequest;
 
 namespace TT_LTS_EDU.Helpers
 {
@@ -99,6 +102,111 @@ namespace TT_LTS_EDU.Helpers
             }
             return true;
         }
+
+
+        public static bool CheckOutValidate(CheckOutRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FullName)
+               || string.IsNullOrWhiteSpace(request.Email)
+               || string.IsNullOrWhiteSpace(request.Phone)
+               || string.IsNullOrWhiteSpace(request.Address))
+            {
+                throw new Exception("Bạn cần truyền vào đầy đủ thông tin !");
+            }
+            if (CheckLengthOfCharacters(request.FullName))
+            {
+                throw new Exception("Họ và tên phải nhỏ hơn 20 ký tự !");
+            }
+            if (CheckWordCount(request.FullName))
+            {
+                throw new Exception("Họ và tên phải có trên 2 từ !");
+            }
+            if (!RegexEmail(request.Email))
+            {
+                throw new Exception("Không đúng định dạng email !");
+            }
+            if (!RegexPhoneNumber(request.Phone))
+            {
+                throw new Exception("Không đúng định dạng số điện thoại !");
+            }
+            return true;
+        }
+
+        public static bool UpdateOrderValidate(UpdateOrderRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.FullName)
+               || string.IsNullOrWhiteSpace(request.Email)
+               || string.IsNullOrWhiteSpace(request.Phone)
+               || string.IsNullOrWhiteSpace(request.Address))
+            {
+                throw new Exception("Bạn cần truyền vào đầy đủ thông tin !");
+            }
+            if (CheckLengthOfCharacters(request.FullName))
+            {
+                throw new Exception("Họ và tên phải nhỏ hơn 20 ký tự !");
+            }
+            if (CheckWordCount(request.FullName))
+            {
+                throw new Exception("Họ và tên phải có trên 2 từ !");
+            }
+            if (!RegexEmail(request.Email))
+            {
+                throw new Exception("Không đúng định dạng email !");
+            }
+            if (!RegexPhoneNumber(request.Phone))
+            {
+                throw new Exception("Không đúng định dạng số điện thoại !");
+            }
+            return true;
+        }
+
+
+        public static bool CreateProductValidate(CreateProductRequest request)
+        {
+            if (request.Height < 1 || request.Width < 1 || request.Length < 1 || request.Weight < 1)
+            {
+                throw new Exception("Chiều cao, rộng, dài và cân nặng phải lớn hơn 0 !");
+            }
+            if (string.IsNullOrWhiteSpace(request.NameProduct)
+                || string.IsNullOrWhiteSpace(request.Title))
+            {
+                throw new Exception("Vui lòng nhập đầy đủ thông tin !");
+            }
+            if (request.Price < 0)
+            {
+                throw new Exception("Vui lòng nhập giá tiền lớn hơn !");
+            }
+            if (request.Discount != null && request.Discount < 0)
+            {
+                throw new Exception("Vui lòng nhập giảm giá lớn hơn !");
+            }
+
+            return true;
+        }
+
+        public static bool UpdateProductValidate(UpdateProductRequest request)
+        {
+            if (request.Height < 1 || request.Width < 1 || request.Length < 1 || request.Weight < 1)
+            {
+                throw new Exception("Chiều cao, rộng, dài và cân nặng phải lớn hơn 0 !");
+            }
+            if (string.IsNullOrWhiteSpace(request.NameProduct)
+                || string.IsNullOrWhiteSpace(request.Title))
+            {
+                throw new Exception("Vui lòng nhập đầy đủ thông tin !");
+            }
+            if (request.Price < 0)
+            {
+                throw new Exception("Vui lòng nhập giá tiền lớn hơn !");
+            }
+            if (request.Discount != null && request.Discount < 0)
+            {
+                throw new Exception("Vui lòng nhập giảm giá lớn hơn !");
+            }
+
+            return true;
+        }
+
         public static bool CheckLengthOfCharacters(string fullName)
         {
             return fullName.Length > 20;

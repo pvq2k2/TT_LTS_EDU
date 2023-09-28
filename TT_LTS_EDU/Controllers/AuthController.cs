@@ -80,18 +80,11 @@ namespace TT_LTS_EDU.Controllers
             return Ok(await _iAuthService.ChangeInformation(request));
         }
 
-        [HttpPut("RemoveAccount")]
+        [HttpPatch("ChangeStatus")]
         [Authorize]
-        public async Task<IActionResult> RemoveAccount(int accountID)
+        public async Task<IActionResult> ChangeStatus(int accountID, int status)
         {
-            return Ok(await _iAuthService.RemoveAccount(accountID));
-        }
-
-        [HttpPut("RecoverAccount")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> RecoverAccount(int accountID)
-        {
-            return Ok(await _iAuthService.RecoverAccount(accountID));
+            return Ok(await _iAuthService.ChangeStatus(accountID, status));
         }
     }
 }

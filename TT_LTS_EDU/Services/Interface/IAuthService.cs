@@ -17,7 +17,6 @@ namespace TT_LTS_EDU.Services.Interface
         public Task<PageResult<AccountDTO>> GetAllAccount(Pagination pagination);
         public Task<ResponseObject<AccountDTO>> GetAccountByID(int accountID);
         public Task<ResponseObject<AccountDTO>> ChangeInformation(ChangeInformationRequest request);
-        public Task<ResponseObject<string>> RemoveAccount(int accountID);
-        public Task<ResponseObject<string>> RecoverAccount(int accountID);
+        public Task<ResponseObject<string>> ChangeStatus(int accountID, int status);
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using QuanLyTrungTam_API.Helper;
 using TT_LTS_EDU.Entities;
 using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Request.CartRequest;
@@ -35,46 +34,46 @@ namespace TT_LTS_EDU.Services.Implement
                     return _response.ResponseError(StatusCodes.Status404NotFound, "Sản phẩm không tồn tại !", null!);
                 }
                 var cart = await _context.Cart.FirstOrDefaultAsync(x => x.ID == userID);
-                using (var tran = _context.Database.BeginTransaction())
+                using var tran = _context.Database.BeginTransaction();
+                try
                 {
-                    try
+                    if (cart == null)
                     {
-                        if (cart == null)
+                        cart = new Cart
                         {
-                            cart = new Cart
-                            {
-                                UserID = userID,
-                            };
-                            await _context.Cart.AddAsync(cart);
-                            await _context.SaveChangesAsync();
-                        }
-
-                        var cartItem = await _context.CartItem.FirstOrDefaultAsync(x => x.CartID == cart.ID && x.ProductID == request.ProductID);
-                        if (cartItem == null)
-                        {
-                            cartItem = new CartItem
-                            {
-                                CartID = cart.ID,
-                                ProductID = request.ProductID,
-                                Quantity = request.Quantity
-                            };
-                            await _context.CartItem.AddAsync(cartItem);
-                            await _context.SaveChangesAsync();
-                        }
-
-                        cartItem.Quantity += request.Quantity;
-                        _context.CartItem.Update(cartItem);
+                            UserID = userID,
+                        };
+                        await _context.Cart.AddAsync(cart);
                         await _context.SaveChangesAsync();
+                    }
 
-                        tran.Commit();
-                        var responseCart = await _context.Cart.Include(x => x.ListCartItem!).ThenInclude(x => x.Product).FirstOrDefaultAsync(x => x.ID == cart.ID);
-                        return _response.ResponseSuccess("Thêm vào giỏ hàng thành công !", _cartConverter.EntityCartToDTO(responseCart!));
-                    }
-                    catch (Exception ex)
+                    var cartItem = await _context.CartItem.FirstOrDefaultAsync(x => x.CartID == cart.ID && x.ProductID == request.ProductID);
+                    if (cartItem == null)
                     {
-                        tran.Rollback();
-                        return _response.ResponseError(StatusCodes.Status500InternalServerError, ex.Message, null!);
+                        cartItem = new CartItem
+                        {
+                            CartID = cart.ID,
+                            ProductID = request.ProductID,
+                            Quantity = request.Quantity
+                        };
+                        await _context.CartItem.AddAsync(cartItem);
+                        await _context.SaveChangesAsync();
+                    } else
+                    {
+                        cartItem.Quantity += request.Quantity;
                     }
+
+                    _context.CartItem.Update(cartItem);
+                    await _context.SaveChangesAsync();
+
+                    await tran.CommitAsync();
+                    var responseCart = await _context.Cart.Include(x => x.ListCartItem!).ThenInclude(x => x.Product).FirstOrDefaultAsync(x => x.ID == cart.ID);
+                    return _response.ResponseSuccess("Thêm vào giỏ hàng thành công !", _cartConverter.EntityCartToDTO(responseCart!));
+                }
+                catch (Exception ex)
+                {
+                    await tran.RollbackAsync();
+                    return _response.ResponseError(StatusCodes.Status500InternalServerError, ex.Message, null!);
                 }
             }
             catch (Exception ex)
@@ -139,7 +138,11 @@ namespace TT_LTS_EDU.Services.Implement
                     return _response.ResponseError(StatusCodes.Status404NotFound, "Sản phẩm không tồn tại trong giỏ hàng !", null!);
                 }
 
+                cart.UpdatedAt = DateTime.Now;
                 cartItem.Quantity = request.Quantity;
+                cartItem.UpdatedAt = DateTime.Now;
+                _context.Cart.Update(cart);
+                await _context.SaveChangesAsync();
                 _context.CartItem.Update(cartItem);
                 await _context.SaveChangesAsync();
 

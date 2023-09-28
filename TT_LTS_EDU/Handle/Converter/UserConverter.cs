@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using TT_LTS_EDU.Entities;
+﻿using TT_LTS_EDU.Entities;
 using TT_LTS_EDU.Handle.DTOs;
 
 namespace TT_LTS_EDU.Handle.Converter

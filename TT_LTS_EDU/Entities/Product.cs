@@ -10,6 +10,10 @@
         public int? Discount { get; set; }
         public int Status { get; set; }
         public int NumberOfViews { get; set; } = 0;
+        public int Height { get; set; }
+        public int Width { get; set; }
+        public int Length { get; set; }
+        public int Weight { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
 

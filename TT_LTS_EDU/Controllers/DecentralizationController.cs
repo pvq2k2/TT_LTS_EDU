@@ -36,7 +36,7 @@ namespace TT_LTS_EDU.Controllers
             return Ok(await _iDecentralizationService.CreateDecentralization(request));
         }
 
-        [HttpPut("UpdateDecentralization")]
+        [HttpPatch("UpdateDecentralization")]
         public async Task<IActionResult> UpdateDecentralization(int decentralizationID, UpdateDecentralizationRequest request)
         {
             return Ok(await _iDecentralizationService.UpdateDecentralization(decentralizationID, request));

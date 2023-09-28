@@ -5,6 +5,7 @@ using TT_LTS_EDU.Enums;
 using TT_LTS_EDU.Handle.DTOs;
 using TT_LTS_EDU.Handle.Request.ProductReviewRequest;
 using TT_LTS_EDU.Handle.Response;
+using TT_LTS_EDU.Helpers;
 using TT_LTS_EDU.Services.Interface;
 
 namespace TT_LTS_EDU.Services.Implement
@@ -12,44 +13,55 @@ namespace TT_LTS_EDU.Services.Implement
     public class ProductReviewService : BaseService, IProductReviewService
     {
         private readonly ResponseObject<ProductReviewDTO> _response;
-        public ProductReviewService(ResponseObject<ProductReviewDTO> response)
+        private readonly TokenHelper _tokenHelper;
+        public ProductReviewService(ResponseObject<ProductReviewDTO> response, TokenHelper tokenHelper)
         {
             _response = response;
+            _tokenHelper = tokenHelper;
         }
         public async Task<ResponseObject<ProductReviewDTO>> CreateProductReview(CreateProductReviewRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.ContentRated))
+            try
             {
-                return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập đầy đủ thông tin !", null!);
+                if (string.IsNullOrWhiteSpace(request.ContentRated))
+                {
+                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập đầy đủ thông tin !", null!);
+                }
+
+                if (request.PointEvaluation < 1 || request.PointEvaluation > 5)
+                {
+                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Số sao không được nhỏ hơn 1 hoặc lớn hơn 5 !", null!);
+                }
+                var product = await _context.Product.FirstOrDefaultAsync(x => x.ID == request.ProductID);
+                if (product == null)
+                {
+                    return _response.ResponseError(StatusCodes.Status404NotFound, "Sản phẩm không tồn tại !", null!);
+                }
+                _tokenHelper.IsToken();
+                var userID = _tokenHelper.GetUserID();
+
+                if (!await _context.User.AnyAsync(x => x.ID == userID))
+                {
+                    return _response.ResponseError(StatusCodes.Status404NotFound, "Người dùng không tồn tại !", null!);
+                }
+
+                var productReview = new ProductReview
+                {
+                    ProductID = request.ProductID,
+                    UserID = userID,
+                    ContentRated = request.ContentRated,
+                    PointEvaluation = request.PointEvaluation,
+                    ContentSeen = product.NameProduct,
+                    Status = (int)Status.Active,
+                };
+
+                return _response.ResponseSuccess("Thêm bình luận thành công !", _productReviewConverter.EntityProductReviewToDTO(productReview));
+
             }
-
-            if (request.PointEvaluation < 1 || request.PointEvaluation > 5)
+            catch (Exception ex)
             {
-                return _response.ResponseError(StatusCodes.Status400BadRequest, "Số sao không được nhỏ hơn 1 hoặc lớn hơn 5 !", null!);
+                return _response.ResponseError(StatusCodes.Status500InternalServerError, ex.Message, null!);
             }
-
-            if (!await _context.User.AnyAsync(x => x.ID == request.UserID))
-            {
-                return _response.ResponseError(StatusCodes.Status404NotFound, "Người dùng không tồn tại !", null!);
-            }
-
-            var product = await _context.Product.FirstOrDefaultAsync(x => x.ID == request.ProductID);
-            if (product == null)
-            {
-                return _response.ResponseError(StatusCodes.Status404NotFound, "Sản phẩm không tồn tại !", null!);
-            }
-
-            var productReview = new ProductReview
-            {
-                ProductID = request.ProductID,
-                UserID = request.UserID,
-                ContentRated = request.ContentRated,
-                PointEvaluation = request.PointEvaluation,
-                ContentSeen = product.NameProduct,
-                Status = (int)Status.Active,
-            };
-
-            return _response.ResponseSuccess("Thêm bình luận thành công !", _productReviewConverter.EntityProductReviewToDTO(productReview));
         }
 
         public async Task<PageResult<ProductReviewDTO>> GetAllProductReview(Pagination pagination)
@@ -92,41 +104,50 @@ namespace TT_LTS_EDU.Services.Implement
 
         public async Task<ResponseObject<ProductReviewDTO>> UpdateProductReview(int productReviewID, UpdateProductReviewRequest request)
         {
-            var productReview = await _context.ProductReview.FirstOrDefaultAsync(x => x.ID == productReviewID);
-
-            if (productReview == null)
+            try
             {
-                return _response.ResponseError(StatusCodes.Status404NotFound, "Bình luận không tồn tại !", null!);
+                var productReview = await _context.ProductReview.FirstOrDefaultAsync(x => x.ID == productReviewID);
+
+                if (productReview == null)
+                {
+                    return _response.ResponseError(StatusCodes.Status404NotFound, "Bình luận không tồn tại !", null!);
+                }
+                if (string.IsNullOrWhiteSpace(request.ContentRated))
+                {
+                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập đầy đủ thông tin !", null!);
+                }
+
+                if (request.PointEvaluation < 1 || request.PointEvaluation > 5)
+                {
+                    return _response.ResponseError(StatusCodes.Status400BadRequest, "Số sao không được nhỏ hơn 1 hoặc lớn hơn 5 !", null!);
+                }
+                _tokenHelper.IsToken();
+                var userID = _tokenHelper.GetUserID();
+
+                if (!await _context.User.AnyAsync(x => x.ID == userID))
+                {
+                    return _response.ResponseError(StatusCodes.Status404NotFound, "Người dùng không tồn tại !", null!);
+                }
+
+                var product = await _context.Product.FirstOrDefaultAsync(x => x.ID == request.ProductID);
+                if (product == null)
+                {
+                    return _response.ResponseError(StatusCodes.Status404NotFound, "Sản phẩm không tồn tại !", null!);
+                }
+
+                productReview.ProductID = request.ProductID;
+                productReview.UserID = userID;
+                productReview.ContentRated = request.ContentRated;
+                productReview.PointEvaluation = request.PointEvaluation;
+                productReview.Status = request.Status;
+                productReview.UpdatedAt = DateTime.Now;
+
+                return _response.ResponseSuccess("Cập nhật bình luận thành công !", _productReviewConverter.EntityProductReviewToDTO(productReview));
             }
-            if (string.IsNullOrWhiteSpace(request.ContentRated))
+            catch (Exception ex)
             {
-                return _response.ResponseError(StatusCodes.Status400BadRequest, "Vui lòng nhập đầy đủ thông tin !", null!);
+                return _response.ResponseError(StatusCodes.Status500InternalServerError, ex.Message, null!);
             }
-
-            if (request.PointEvaluation < 1 || request.PointEvaluation > 5)
-            {
-                return _response.ResponseError(StatusCodes.Status400BadRequest, "Số sao không được nhỏ hơn 1 hoặc lớn hơn 5 !", null!);
-            }
-
-            if (!await _context.User.AnyAsync(x => x.ID == request.UserID))
-            {
-                return _response.ResponseError(StatusCodes.Status404NotFound, "Người dùng không tồn tại !", null!);
-            }
-
-            var product = await _context.Product.FirstOrDefaultAsync(x => x.ID == request.ProductID);
-            if (product == null)
-            {
-                return _response.ResponseError(StatusCodes.Status404NotFound, "Sản phẩm không tồn tại !", null!);
-            }
-
-            productReview.ProductID = request.ProductID;
-            productReview.UserID = request.UserID;
-            productReview.ContentRated = request.ContentRated;
-            productReview.PointEvaluation = request.PointEvaluation;
-            productReview.Status = request.Status;
-            productReview.UpdatedAt = DateTime.Now;
-
-            return _response.ResponseSuccess("Cập nhật bình luận thành công !", _productReviewConverter.EntityProductReviewToDTO(productReview));
         }
     }
 }
