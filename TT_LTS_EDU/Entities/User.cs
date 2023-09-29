@@ -15,5 +15,6 @@
         public List<Order>? ListOrder { get; set; }
         public List<ProductReview>? ListProductReview { get; set; }
         public List<Cart>? ListCart { get; set; }
+        public List<Voucher>? ListVoucher { get; set; }
     }
 }

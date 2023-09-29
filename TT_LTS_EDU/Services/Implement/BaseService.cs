@@ -14,6 +14,8 @@ namespace TT_LTS_EDU.Services.Implement
         protected readonly ProductReviewConverter _productReviewConverter;
         protected readonly CartConverter _cartConverter;
         protected readonly OrderConverter _orderConverter;
+        protected readonly VoucherConverter _voucherConverter;
+
         public BaseService() {
             _context = new AppDbContext();
             _authConverter = new AuthConverter();
@@ -24,6 +26,7 @@ namespace TT_LTS_EDU.Services.Implement
             _productReviewConverter = new ProductReviewConverter();
             _cartConverter = new CartConverter();
             _orderConverter = new OrderConverter();
+            _voucherConverter = new VoucherConverter();
         }
     }
 }

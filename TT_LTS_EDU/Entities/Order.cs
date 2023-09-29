@@ -26,5 +26,6 @@
         public User? User { get; set; }
         public OrderStatus? OrderStatus { get; set; }
         public List<OrderDetail>? ListOrderDetail { get; set; }
+        public List<Voucher>? ListVoucher { get; set; }
     }
 }

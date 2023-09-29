@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using TT_LTS_EDU.Handle.Request.AuthRequest;
 using TT_LTS_EDU.Handle.Request.OrderRequest;
 using TT_LTS_EDU.Handle.Request.ProductRequest;
+using TT_LTS_EDU.Handle.Request.VoucherRequest;
 
 namespace TT_LTS_EDU.Helpers
 {
@@ -71,6 +72,23 @@ namespace TT_LTS_EDU.Helpers
             if (!RegexPhoneNumber(request.Phone))
             {
                 throw new Exception("Không đúng định dạng số điện thoại !");
+            }
+            return true;
+        }
+
+        public static bool VoucherValidate(VoucherRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Code) || string.IsNullOrWhiteSpace(request.Title))
+            {
+                throw new Exception("Vui lòng nhập đủ thông tin !");
+            }
+            if (request.DiscountPercentage < 1)
+            {
+                throw new Exception("Số phần trăm không được nhỏ hơn 1 !");
+            }
+            if (request.MinimumPurchaseAmount < 0)
+            {
+                throw new Exception("Số tiền tối thiểu không phải lả số âm !");
             }
             return true;
         }
