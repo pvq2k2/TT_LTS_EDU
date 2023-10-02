@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using TT_LTS_EDU.Handle.Request.VNPayRequest;
 using TT_LTS_EDU.Handle.Response;
 
 namespace TT_LTS_EDU.Helpers
@@ -12,23 +13,25 @@ namespace TT_LTS_EDU.Helpers
         private readonly SortedList<string, string> _requestData = new SortedList<string, string>(new VnPayCompare());
         private readonly SortedList<string, string> _responseData = new SortedList<string, string>(new VnPayCompare());
 
-        public ResponsePayment GetFullResponseData(IQueryCollection collection, string hashSecret)
+        public ResponsePayment GetFullResponseData(PaymentResultRequest request, string hashSecret)
         {
             var vnPay = new VnPayLibrary();
-
-            foreach (var (key, value) in collection)
-            {
-                if (!string.IsNullOrEmpty(key) && key.StartsWith("vnp_"))
-                {
-                    vnPay.AddResponseData(key, value!);
-                }
-            }
+            vnPay.AddResponseData("vnp_Amount", request.vnp_Amount);
+            vnPay.AddResponseData("vnp_BankCode", request.vnp_BankCode);
+            vnPay.AddResponseData("vnp_CardType", request.vnp_CardType);
+            vnPay.AddResponseData("vnp_OrderInfo", request.vnp_OrderInfo);
+            vnPay.AddResponseData("vnp_PayDate", request.vnp_PayDate);
+            vnPay.AddResponseData("vnp_ResponseCode", request.vnp_ResponseCode);
+            vnPay.AddResponseData("vnp_SecureHash", request.vnp_SecureHash);
+            vnPay.AddResponseData("vnp_TmnCode", request.vnp_TmnCode);
+            vnPay.AddResponseData("vnp_TransactionNo", request.vnp_TransactionNo);
+            vnPay.AddResponseData("vnp_TransactionStatus", request.vnp_TransactionStatus);
+            vnPay.AddResponseData("vnp_TxnRef", request.vnp_TxnRef);
 
             var orderId = Convert.ToInt64(vnPay.GetResponseData("vnp_TxnRef"));
             var vnPayTranId = Convert.ToInt64(vnPay.GetResponseData("vnp_TransactionNo"));
             var vnpResponseCode = vnPay.GetResponseData("vnp_ResponseCode");
-            var vnpSecureHash =
-                collection.FirstOrDefault(k => k.Key == "vnp_SecureHash").Value; //hash của dữ liệu trả về
+            var vnpSecureHash = vnPay.GetResponseData("vnp_SecureHash"); //hash của dữ liệu trả về
             var orderInfo = vnPay.GetResponseData("vnp_OrderInfo");
 
             var checkSignature =
@@ -175,15 +178,17 @@ namespace TT_LTS_EDU.Helpers
             return data.ToString();
         }
     }
-}
-public class VnPayCompare : IComparer<string>
-{
-    public int Compare(string x, string y)
+
+    public class VnPayCompare : IComparer<string>
     {
-        if (x == y) return 0;
-        if (x == null) return -1;
-        if (y == null) return 1;
-        var vnpCompare = CompareInfo.GetCompareInfo("en-US");
-        return vnpCompare.Compare(x, y, CompareOptions.Ordinal);
+        public int Compare(string x, string y)
+        {
+            if (x == y) return 0;
+            if (x == null) return -1;
+            if (y == null) return 1;
+            var vnpCompare = CompareInfo.GetCompareInfo("en-US");
+            return vnpCompare.Compare(x, y, CompareOptions.Ordinal);
+        }
     }
 }
+
