@@ -25,6 +25,7 @@ namespace TT_LTS_EDU.Helpers.DBContext
         public DbSet<RefreshToken> RefreshToken { get; set; }
         public DbSet<User> User { get; set; }
         public DbSet<Voucher> Voucher { get; set; }
+        public DbSet<Slides> Slides { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

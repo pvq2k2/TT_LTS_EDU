@@ -68,9 +68,9 @@ builder.Services.AddTransient<IProductReviewService, ProductReviewService>();
 builder.Services.AddTransient<ICartService, CartService>();
 builder.Services.AddTransient<IOrderService, OrderService>();
 builder.Services.AddTransient<IVoucherService, VoucherService>();
+builder.Services.AddTransient<ISlidesService, SlidesService>();
 builder.Services.AddTransient<TokenHelper>();
 builder.Services.AddTransient<GHNHelper>();
-builder.Services.AddTransient<VNPayHelper>();
 
 
 builder.Services.AddSingleton<ResponseObject<AccountDTO>>();
@@ -83,6 +83,7 @@ builder.Services.AddSingleton<ResponseObject<DecentralizationDTO>>();
 builder.Services.AddSingleton<ResponseObject<CartDTO>>();
 builder.Services.AddSingleton<ResponseObject<OrderDTO>>();
 builder.Services.AddSingleton<ResponseObject<VoucherDTO>>();
+builder.Services.AddSingleton<ResponseObject<SlidesDTO>>();
 
 builder.Services.AddSingleton<CloudinaryHelper>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();

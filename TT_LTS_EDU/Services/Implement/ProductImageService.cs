@@ -34,7 +34,7 @@ namespace TT_LTS_EDU.Services.Implement
                 }
                 InputHelper.IsImage(request.ImageProduct!);
 
-                string image = await _cloundinaryHelper.UploadImage(request.ImageProduct!, $"pizza/productImage/{request.ProductID}", "product-image");
+                string image = await _cloundinaryHelper.UploadImage(request.ImageProduct!, $"van-quyet-mobile/productImage/{request.ProductID}", "product-image");
                 var productImage = new ProductImage
                 {
                     Title = request.Title,
@@ -120,7 +120,7 @@ namespace TT_LTS_EDU.Services.Implement
                 else
                 {
                     InputHelper.IsImage(request.ImageProduct!);
-                    img = await _cloundinaryHelper.UploadImage(request.ImageProduct!, $"pizza/productImage/{request.ProductID}", "product-image");
+                    img = await _cloundinaryHelper.UploadImage(request.ImageProduct!, $"van-quyet-mobile/productImage/{request.ProductID}", "product-image");
                     await _cloundinaryHelper.DeleteImageByUrl(productImage.ImageProduct!);
                 }
 

@@ -15,14 +15,12 @@ namespace TT_LTS_EDU.Services.Implement
         private readonly ResponseObject<OrderDTO> _response;
         private readonly TokenHelper _tokenHelper;
         private readonly GHNHelper _ghnHelper;
-        private readonly VNPayHelper _vnPayHelper;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public OrderService(ResponseObject<OrderDTO> response, TokenHelper tokenHelper, GHNHelper ghnHelper, VNPayHelper vnPayHelper, IHttpContextAccessor httpContextAccessor)
+        public OrderService(ResponseObject<OrderDTO> response, TokenHelper tokenHelper, GHNHelper ghnHelper, IHttpContextAccessor httpContextAccessor)
         {
             _response = response;
             _tokenHelper = tokenHelper;
             _ghnHelper = ghnHelper;
-            _vnPayHelper = vnPayHelper;
             _httpContextAccessor = httpContextAccessor;
         }
 

@@ -145,7 +145,7 @@ namespace TT_LTS_EDU.Services.Implement
                 {
                     return _responseAccount.ResponseError(StatusCodes.Status400BadRequest, "Số điện thoại đã được sử dụng !", null!);
                 }
-                string avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
+                string avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "van-quyet-mobile/user", "avatar");
 
                 using var tran = _context.Database.BeginTransaction();
                 try
@@ -424,7 +424,7 @@ namespace TT_LTS_EDU.Services.Implement
                 if (request.Avatar != null)
                 {
                     InputHelper.IsImage(request.Avatar!);
-                    avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "pizza/user", "avatar");
+                    avatar = await _cloudinaryHelper.UploadImage(request.Avatar!, "van-quyet-mobile/user", "avatar");
                     await _cloudinaryHelper.DeleteImageByUrl(account.User!.Avatar);
                 }
                 else
