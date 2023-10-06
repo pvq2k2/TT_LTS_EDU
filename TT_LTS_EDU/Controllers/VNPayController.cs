@@ -43,15 +43,6 @@ namespace TT_LTS_EDU.Controllers
             return Ok(paymentUrl);
         }
 
-        //[HttpGet("PaymentExecute")]
-        //public IActionResult PaymentExecute(IQueryCollection collections)
-        //{
-        //    var pay = new VnPayLibrary();
-        //    var response = pay.GetFullResponseData(collections, _configuration.GetSection("AppSettings:VNPaySettings:HashSecret").Value!);
-
-        //    return Ok(response);
-        //}
-
         [HttpPost("PaymentExecute")]
         public IActionResult PaymentCallback(PaymentResultRequest request)
         {

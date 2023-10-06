@@ -12,11 +12,9 @@ namespace TT_LTS_EDU.Entities
         public double MinimumPurchaseAmount { get; set; } // Số tiền tối thiểu mà khách hàng cần chi trước khi có thể sử dụng mã giảm giá
         public DateTime ExpiryDate { get; set; } // Thời gian hết hạn
 
-        public int? UserID { get; set; }
-        public int? OrderID { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? UpdatedAt { get; set; }
-        public User? User { get; set; }
-        public Order? Order { get; set; }
+
+        
     }
 }

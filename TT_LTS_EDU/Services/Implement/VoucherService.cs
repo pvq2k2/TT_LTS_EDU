@@ -40,13 +40,18 @@ namespace TT_LTS_EDU.Services.Implement
                 { 
                     return _response.ResponseError(StatusCodes.Status400BadRequest, "Không đủ điều kiện để sử dụng được voucher này !", null!);
                 }
-                if (voucher.UserID == userID)
+
+                var userVoucher = await _context.UserVoucher.FirstOrDefaultAsync(x => x.VoucherID == voucher.ID && x.UserID == userID);
+                if (userVoucher != null)
                 {
                     return _response.ResponseError(StatusCodes.Status400BadRequest, "Bạn đã sử dụng voucher này rồi !", null!);
                 }
 
-                voucher.UserID = userID;
-                _context.Voucher.Update(voucher);
+                var useVoucher = new UserVoucher { 
+                    UserID = userID,
+                    VoucherID = voucher.ID,
+                };
+                await _context.UserVoucher.AddAsync(useVoucher);
                 await _context.SaveChangesAsync();
 
                 return _response.ResponseSuccess("Sử dụng voucher thành công !", null!);
@@ -131,14 +136,13 @@ namespace TT_LTS_EDU.Services.Implement
             {
                 _tokenHelper.IsToken();
                 int userID = _tokenHelper.GetUserID();
-                var voucher = await _context.Voucher.FirstOrDefaultAsync(x => x.ID == voucherID && x.UserID == userID);
-                if (voucher == null)
+                var userVoucher = await _context.UserVoucher.FirstOrDefaultAsync(x => x.ID == voucherID && x.UserID == userID);
+                if (userVoucher == null)
                 {
                     return response.ResponseError(StatusCodes.Status404NotFound, "Voucher không tồn tại !", null!);
                 }
 
-                voucher.UserID = null;
-                _context.Voucher.Update(voucher);
+                _context.UserVoucher.Remove(userVoucher);
                 await _context.SaveChangesAsync();
 
                 return response.ResponseSuccess("Thành công !", null!);

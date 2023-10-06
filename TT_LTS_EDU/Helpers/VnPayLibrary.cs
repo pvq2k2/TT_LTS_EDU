@@ -18,6 +18,7 @@ namespace TT_LTS_EDU.Helpers
             var vnPay = new VnPayLibrary();
             vnPay.AddResponseData("vnp_Amount", request.vnp_Amount);
             vnPay.AddResponseData("vnp_BankCode", request.vnp_BankCode);
+            vnPay.AddResponseData("vnp_BankTranNo", request.vnp_BankTranNo);
             vnPay.AddResponseData("vnp_CardType", request.vnp_CardType);
             vnPay.AddResponseData("vnp_OrderInfo", request.vnp_OrderInfo);
             vnPay.AddResponseData("vnp_PayDate", request.vnp_PayDate);
@@ -129,7 +130,7 @@ namespace TT_LTS_EDU.Helpers
 
         public bool ValidateSignature(string inputHash, string secretKey)
         {
-            var rspRaw = GetResponseData();
+            var rspRaw = GetResponseData(); 
             var myChecksum = HmacSha512(secretKey, rspRaw);
             return myChecksum.Equals(inputHash, StringComparison.InvariantCultureIgnoreCase);
         }

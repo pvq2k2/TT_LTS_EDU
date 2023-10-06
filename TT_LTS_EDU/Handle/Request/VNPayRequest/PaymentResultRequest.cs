@@ -4,6 +4,7 @@
     {
         public string vnp_Amount { get; set; }
         public string vnp_BankCode { get; set; }
+        public string vnp_BankTranNo { get; set; }
         public string vnp_CardType { set; get; }
         public string vnp_OrderInfo { get; set; }
         public string vnp_PayDate { get; set; }
