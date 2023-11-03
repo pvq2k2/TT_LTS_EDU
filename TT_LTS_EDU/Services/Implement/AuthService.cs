@@ -9,7 +9,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using TT_LTS_EDU.Entities;
 using TT_LTS_EDU.Handle.DTOs;
-using TT_LTS_EDU.Handle.Request.AuthRequest;
+using TT_LTS_EDU.Handle.Request.AuthRequest; 
 using TT_LTS_EDU.Handle.Response;
 using TT_LTS_EDU.Helpers;
 using TT_LTS_EDU.Services.Interface;
@@ -101,7 +101,7 @@ namespace TT_LTS_EDU.Services.Implement
                 Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
                 AccountID = AccountID,
                 CreatedAt = DateTime.Now,
-                ExpiredTime = DateTime.Now.AddHours(4)
+                ExpiredTime = DateTime.Now.AddDays(5)
             };
 
             return refreshToken;
@@ -218,9 +218,9 @@ namespace TT_LTS_EDU.Services.Implement
                     return _responseAuth.ResponseError(StatusCodes.Status404NotFound, "RefreshToken không tồn tại trong database", null!);
                 }
 
-                if (existingRefreshToken.ExpiredTime > DateTime.Now)
+                if (existingRefreshToken.ExpiredTime < DateTime.Now)
                 {
-                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "RefreshToken chưa hết hạn", null!);
+                    return _responseAuth.ResponseError(StatusCodes.Status401Unauthorized, "Phiên đăng nhập đã hết hạn", null!);
                 }
 
                 var account = _context.Account
